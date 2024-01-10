@@ -1,0 +1,55 @@
+{
+  "name": "@lottielab/lottie-player",
+  "version": "0.1.0",
+  "description": "Versatile player for Lottie animations based on lottie-web. Supports HTML (via Web Components) and React.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./dist/player.min.js",
+    "./web": "./dist/player-web.min.js",
+    "./react": "./dist/player-react.min.js"
+  },
+  "scripts": {
+    "build": "npm run prettier && rollup -c",
+    "build:playground": "npm run prettier && rollup -c rollup.config.playground.js",
+    "prettier": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
+    "playground": "npm run build:playground && http-server -p 8080 -c-1 -o playground/ .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lottielab",
+  "license": "MIT",
+  "keywords": [
+    "lottie",
+    "lottie-web",
+    "bodymovin",
+    "animation",
+    "lottielab"
+  ],
+  "dependencies": {
+    "lottie-web": "github:lottielab/lottie-web#c4ba237b99a590eb200cf8b2ebcdd54d0f9d4309"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.18",
+    "acorn-jsx": "^5.3.2",
+    "http-server": "^14.1.1",
+    "prettier": "^3.1.1",
+    "react-dom": "^18.2.0",
+    "rollup": "^2.79.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  }
+}
