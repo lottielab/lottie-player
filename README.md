@@ -69,11 +69,37 @@ lottie.setAttribute('src', 'path/to/your-animation.json');
 lottie.setAttribute('autoplay', 'true');
 lottie.setAttribute('loop', 'false');
 document.getElementById('my-animation').appendChild(lottie);
+lottie.play();
+lottie.setSpeed(1.5);
+lottie.goToAndStop(50, true);
+// and so on...
 ```
 
-#### Available properties
+#### API
 
-**TODO**
+##### Attributes
+
+| Name       | Type                | Description                                            |
+| ---------- | ------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `src`      | Attribute (string)  | The source path or JSON data for the Lottie animation. |
+| `autoplay` | Attribute (boolean) | Whether the animation should autoplay.                 |
+| `loop`     | Attribute (boolean  | number)                                                | Whether the animation should loop, optionally pass a number to set the number of loops an animation should play. |
+
+##### Methods
+
+| Name           | Type                                     | Description                                                                                                 |
+| -------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `play`         | Method                                   | Plays the Lottie animation.                                                                                 |
+| `stop`         | Method                                   | Stops the Lottie animation.                                                                                 |
+| `pause`        | Method                                   | Pauses the Lottie animation.                                                                                |
+| `setSpeed`     | Method (speed: number)                   | Sets the speed of the animation. `speed`: The speed factor.                                                 |
+| `goToAndStop`  | Method (value: number, isFrame: boolean) | Goes to a specific frame and stops. `value`: Frame number or time, `isFrame`: Frame if true, time if false. |
+| `goToAndPlay`  | Method (value: number, isFrame: boolean) | Goes to a specific frame and plays. `value`: Frame number or time, `isFrame`: Frame if true, time if false. |
+| `setDirection` | Method (direction: AnimationDirection)   | Sets the direction of the animation. `direction`: 1 for forward, -1 for reverse.                            |
+| `playSegments` | Method (segments: AnimationSegment       | AnimationSegment[], forceFlag: boolean)                                                                     | Plays specified segments of the animation. `segments`: The animation segments, `forceFlag`: If true, changes immediately. |
+| `setSubframe`  | Method (useSubFrames: boolean)           | Sets whether to use subframes. `useSubFrames`: Subframe usage.                                              |
+| `destroy`      | Method                                   | Destroys the Lottie animation instance.                                                                     |
+| `getDuration`  | Method (inFrames: boolean): number       | Returns the duration of the animation. `inFrames`: If true, returns in frames, otherwise in seconds.        |
 
 ---
 
