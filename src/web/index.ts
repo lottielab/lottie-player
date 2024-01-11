@@ -1,4 +1,8 @@
-import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
+import lottie, {
+  AnimationDirection,
+  AnimationItem,
+  AnimationSegment,
+} from 'lottie-web/build/player/lottie_lottielab';
 
 class LottieWeb extends HTMLElement {
   private player?: AnimationItem;
@@ -73,6 +77,51 @@ class LottieWeb extends HTMLElement {
       this.player.destroy();
       this.player = undefined;
     }
+  }
+
+  // Expose Lottie methods
+  play() {
+    if (this.player) this.player.play();
+  }
+
+  stop() {
+    if (this.player) this.player.stop();
+  }
+
+  pause() {
+    if (this.player) this.player.pause();
+  }
+
+  setSpeed(speed: number) {
+    if (this.player) this.player.setSpeed(speed);
+  }
+
+  goToAndStop(value: number, isFrame: boolean = false) {
+    if (this.player) this.player.goToAndStop(value, isFrame);
+  }
+
+  goToAndPlay(value: number, isFrame: boolean = false) {
+    if (this.player) this.player.goToAndPlay(value, isFrame);
+  }
+
+  setDirection(direction: AnimationDirection) {
+    if (this.player) this.player.setDirection(direction);
+  }
+
+  playSegments(segments: AnimationSegment | AnimationSegment[], forceFlag: boolean) {
+    if (this.player) this.player.playSegments(segments, forceFlag);
+  }
+
+  setSubframe(useSubFrames: boolean) {
+    if (this.player) this.player.setSubframe(useSubFrames);
+  }
+
+  destroy() {
+    if (this.player) this.player.destroy();
+  }
+
+  getDuration(inFrames: boolean): number {
+    return this.player ? this.player.getDuration(inFrames) : 0;
   }
 }
 
