@@ -4,7 +4,7 @@ class LottieWeb extends HTMLElement {
   private player?: AnimationItem;
 
   static get observedAttributes() {
-    return ['src', 'autoplay', 'playing', 'pause', 'loop'];
+    return ['src', 'autoplay', 'loop'];
   }
 
   constructor() {
@@ -20,11 +20,9 @@ class LottieWeb extends HTMLElement {
     if (name === 'src' && newValue !== oldValue) {
       this.initializePlayer();
     }
-
-    // handle rest here
   }
 
-  async initializePlayer() {
+  private async initializePlayer() {
     if (!this.shadowRoot) {
       return;
     }
@@ -51,11 +49,20 @@ class LottieWeb extends HTMLElement {
     }
 
     if (animationData) {
+      const loopAttribute = this.getAttribute('loop');
+      // Loop can either be a bool or a number representing the number of loops the animation should run for.
+      const loop: boolean | number =
+        loopAttribute === null
+          ? true
+          : isNaN(Number(loopAttribute))
+            ? !(loopAttribute === 'false')
+            : Number(loopAttribute);
+
       this.player = lottie.loadAnimation({
         container: container,
         renderer: 'svg',
-        loop: !(this.getAttribute('loop') === 'false'),
         autoplay: !(this.getAttribute('autoplay') === 'false'),
+        loop,
         animationData: animationData,
       });
     }
