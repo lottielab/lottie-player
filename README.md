@@ -16,13 +16,13 @@ animations exported from [Lottielab](https://lottielab.com).
 
 ### npm
 
-```
+```bash
 npm install --save @lottielab/lottie-player
 ```
 
 ### yarn
 
-```
+```bash
 yarn add @lottielab/lottie-player
 ```
 
@@ -48,7 +48,6 @@ Then, to play a Lottie:
 If you already have a build pipeline, you might prefer loading the script from
 within your code. You can simply import the file:
 
-```
 ```javascript
 import '@lottielab/lottie-player/web';
 // or: import '@lottielab/lottie-player';
