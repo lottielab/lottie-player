@@ -79,27 +79,39 @@ lottie.goToAndStop(50, true);
 
 ##### Attributes
 
-| Name       | Type                | Description                                            |
-| ---------- | ------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `src`      | Attribute (string)  | The source path or JSON data for the Lottie animation. |
-| `autoplay` | Attribute (boolean) | Whether the animation should autoplay.                 |
-| `loop`     | Attribute (boolean  | number)                                                | Whether the animation should loop, optionally pass a number to set the number of loops an animation should play. |
+| Name | Type | Description |
+| --- | --- | --- |
+| `src`      | string  | The source path or JSON data for the Lottie animation. |
+| `autoplay` | boolean | Whether the animation should autoplay.                 |
+| `loop`     | (boolean  \| number) | Whether the animation should loop, optionally pass a number to set the number of loops an animation should play. |
 
 ##### Methods
 
-| Name           | Type                                     | Description                                                                                                 |
-| -------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `play`         | Method                                   | Plays the Lottie animation.                                                                                 |
-| `stop`         | Method                                   | Stops the Lottie animation.                                                                                 |
-| `pause`        | Method                                   | Pauses the Lottie animation.                                                                                |
-| `setSpeed`     | Method (speed: number)                   | Sets the speed of the animation. `speed`: The speed factor.                                                 |
-| `goToAndStop`  | Method (value: number, isFrame: boolean) | Goes to a specific frame and stops. `value`: Frame number or time, `isFrame`: Frame if true, time if false. |
-| `goToAndPlay`  | Method (value: number, isFrame: boolean) | Goes to a specific frame and plays. `value`: Frame number or time, `isFrame`: Frame if true, time if false. |
-| `setDirection` | Method (direction: AnimationDirection)   | Sets the direction of the animation. `direction`: 1 for forward, -1 for reverse.                            |
-| `playSegments` | Method (segments: AnimationSegment       | AnimationSegment[], forceFlag: boolean)                                                                     | Plays specified segments of the animation. `segments`: The animation segments, `forceFlag`: If true, changes immediately. |
-| `setSubframe`  | Method (useSubFrames: boolean)           | Sets whether to use subframes. `useSubFrames`: Subframe usage.                                              |
-| `destroy`      | Method                                   | Destroys the Lottie animation instance.                                                                     |
-| `getDuration`  | Method (inFrames: boolean): number       | Returns the duration of the animation. `inFrames`: If true, returns in frames, otherwise in seconds.        |
+| Name | Parameters | Description |
+| ---- | ---------- | ----------- |
+| `play()` | `void` | Plays the Lottie animation. |
+| `stop()` | `void` | Stops the Lottie animation, resetting the animation to frame 0. |
+| `pause()` | `void` | Pauses the Lottie animation at the current frame. |
+| `setSpeed(speed)` | `(speed: number)` | Sets the speed of the animation. `speed`: The speed factor. |
+| `seek(time)` | `(time: number)` | Seeks Lottie animation to a specific point in time, in seconds. |
+| `seekToFrame(frame)` | `(frame: number)` | Seeks Lottie animation to specified frame. |
+| `setDirection(direction)` | `(direction: 1 \| -1)` | Sets the direction of the animation, 1 for forward, -1 for reverse. |
+| `loopBetween(frame1, frame2)` | `(frame1: number, frame2: number)` | Loops between two frames within the Lottie animation. |
+| `getDuration()` | `void` | Returns the duration of the animation in seconds. |
+| `getDurationInFrames()` | `void` | Returns the duration of the animation in frames. |
+
+##### Getters/Setters
+
+| Name | Parameters | Description |
+| ---- | ---------- | ----------- |
+| `playing` | `(boolean)` | Gets/Sets whether the Lottie animation is playing or paused. Inverse of `paused`. |
+| `paused` | `(boolean)`| Gets/Sets whether the Lottie animation is playing or paused. Inverse of `playing`. |
+| `currentTime` | `(timeInSeconds: number)`| Gets/Sets the current time in seconds of the Lottie animation. If setting, this will seek the animation to that point in time. |
+| `currentFrame` | `(frame: number)` | Gets/Sets the current frame of the Lottie animation. If setting, this will seek the animation to that frame. |
+| `duration` | `Getter only` | Gets the duration of the Lottie animation in seconds. |
+| `durationFrames` | `Getter only`| Gets the duration of the Lottie animation in frames. |
+| `direction` | `(direction: 1 \| -1)`| Gets or Sets the current direction. |
+| `speed` | `(speed:number)`| Gets or Sets the current speed factor. |
 
 ---
 
