@@ -123,10 +123,6 @@ class LottieWeb extends HTMLElement {
     if (this.player) this.player.pause();
   }
 
-  setSpeed(speed: number) {
-    if (this.player) this.player.setSpeed(speed);
-  }
-
   seek(time: number) {
     if (this.player) {
       time = time * 1000; // goTo expects milliseconds
@@ -226,7 +222,7 @@ class LottieWeb extends HTMLElement {
 
   set speed(speed) {
     if (this.player) {
-      this.setSpeed(speed);
+      this.player.setSpeed(speed);
     }
   }
 }
