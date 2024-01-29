@@ -24,13 +24,6 @@ class LottieWeb extends HTMLElement {
       this.initializePlayer();
     }
 
-    if (name === 'autoplay' && newValue !== oldValue) {
-      if (!this.shadowRoot || !this.player) {
-        return;
-      }
-      this.player.autoplay = !(newValue === 'false');
-    }
-
     if (name === 'loop' && newValue !== oldValue) {
       if (!this.shadowRoot || !this.player) {
         return;
