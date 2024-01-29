@@ -148,20 +148,8 @@ class LottieWeb extends HTMLElement {
     }
   }
 
-  setDirection(direction: AnimationDirection) {
-    if (this.player) this.player.setDirection(direction);
-  }
-
   loopBetweenFrames(frame1: number, frame2: number) {
     if (this.player) this.player.playSegments([frame1, frame2]);
-  }
-
-  getDuration(): number {
-    return this.player ? this.player.getDuration() : 0;
-  }
-
-  getDurationInFrames(): number {
-    return this.player ? this.player.getDuration(true) : 0;
   }
 
   // Getters/Setters
@@ -228,7 +216,7 @@ class LottieWeb extends HTMLElement {
 
   set direction(playDirection) {
     if (this.player) {
-      this.setDirection(this.convertDirectionAttribute(playDirection));
+      this.player.setDirection(this.convertDirectionAttribute(playDirection));
     }
   }
 
