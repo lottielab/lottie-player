@@ -69,11 +69,94 @@ lottie.setAttribute('src', 'path/to/your-animation.json');
 lottie.setAttribute('autoplay', 'true');
 lottie.setAttribute('loop', 'false');
 document.getElementById('my-animation').appendChild(lottie);
+lottie.play();
+lottie.setSpeed(1.5);
+lottie.goToAndStop(50, true);
+// and so on...
 ```
 
-#### Available properties
+#### API
 
-**TODO**
+##### HTML Attributes
+
+These are attributes that can be set on the `<lottie-player>` component in HTML.
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `src`      | string  | The source path or url for the Lottie animation. |
+| `autoplay` | boolean | Whether the animation should autoplay.                 |
+| `loop`     | boolean  \| number | Whether the animation should loop, optionally pass a number to set the number of loops an animation should play. |
+
+Example usage:
+
+```html
+  <lottie-player src="path/to/file" autoplay loop="4" />
+```
+
+##### Methods
+
+These methods provide controls for playing, stopping, pausing, seeking, and looping the Lottie animation.
+
+| Name | Parameters | Description |
+| ---- | ---------- | ----------- |
+| `play()` | `void` | Plays the Lottie animation. |
+| `stop()` | `void` | Stops the Lottie animation, resetting the animation to frame 0. |
+| `pause()` | `void` | Pauses the Lottie animation at the current frame. |
+| `seek(timeSeconds)` | `timeSeconds: number` | Seeks Lottie animation to a specific point in time, in seconds. |
+| `seekToFrame(frame)` | `frame: number` | Seeks Lottie animation to specified frame. |
+| `loopBetween(timeSeconds1, timeSeconds2)` | `timeSeconds1: number, timeSeconds2: number` | Loops between two points in time (in seconds) within the Lottie animation. |
+| `loopBetweenFrames(frame1, frame2)` | `frame1: number, frame2: number` | Loops between two frames within the Lottie animation. |
+
+Example usage:
+
+```javascript
+// Play the animation
+lottieAnimation.play();
+
+// Pause the animation
+lottieAnimation.pause();
+
+// Stop and reset the animation
+lottieAnimation.stop();
+
+// Seek to 5 seconds into the animation
+lottieAnimation.seek(5);
+
+// Seek to frame 20
+lottieAnimation.seekToFrame(20);
+
+// Loop between frames 10 and 30
+lottieAnimation.loopBetweenFrames(10, 30);
+```
+
+##### Properties
+
+These properties can be accessed and modified on the component class to control various aspects of the Lottie animation.
+
+| Name | Type | Description |
+| ---- | ---------- | ----------- |
+| `playing` | `boolean` | Gets/Sets whether the Lottie animation is playing or paused. Inverse of `paused`. |
+| `paused` | `boolean`| Gets/Sets whether the Lottie animation is playing or paused. Inverse of `playing`. |
+| `currentTime` | `timeInSeconds: number`| Gets/Sets the current time in seconds of the Lottie animation. If setting, this will seek the animation to that point in time. |
+| `currentFrame` | `frame: number` | Gets/Sets the current frame of the Lottie animation. If setting, this will seek the animation to that frame. |
+| `duration` | `Getter only` | Gets the duration of the Lottie animation in seconds. |
+| `durationFrames` | `Getter only`| Gets the duration of the Lottie animation in frames. |
+| `direction` | `direction: 1 \| -1`| Gets or Sets the current direction. A value of `1` plays the animation in a _forwards_ direction, whereas `-1` plays the animation in _reverse_. |
+| `speed` | `speed:number`| Gets or Sets the current speed factor, where `2` is twice the normal playing speed, `4` is four times, etc, etc. |
+
+For example, assumming we have a Lottie Animation instance named `lottieAnimation`:
+
+```javascript
+// Play the animation
+lottieAnimation.playing = true;
+
+// Seek to specific time
+lottieAnimation.currentTime = 3; // Seeks to 3 seconds!
+
+// Get the total duration in frames
+let animationDuration = lottieAnimation.durationFrames;
+console.log(`Duration in frames: ${animationDuration}`); // Duration in frames: 400
+```
 
 ---
 

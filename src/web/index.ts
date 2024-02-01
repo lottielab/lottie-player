@@ -1,10 +1,13 @@
-import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
+import lottie, {
+  AnimationDirection,
+  AnimationItem,
+} from 'lottie-web/build/player/lottie_lottielab';
 
 class LottieWeb extends HTMLElement {
   private player?: AnimationItem;
 
   static get observedAttributes() {
-    return ['src', 'autoplay', 'playing', 'pause', 'loop'];
+    return ['src', 'autoplay', 'loop'];
   }
 
   constructor() {
@@ -21,10 +24,40 @@ class LottieWeb extends HTMLElement {
       this.initializePlayer();
     }
 
-    // handle rest here
+    if (name === 'loop' && newValue !== oldValue) {
+      if (!this.shadowRoot || !this.player) {
+        return;
+      }
+      this.player.loop = this.convertLoopAttribute(newValue);
+    }
   }
 
-  async initializePlayer() {
+  /**
+   * Converts the loop attribute (which can either be null or a string) to either a boolean or a number.
+   * When `loop` is true/false it sets whether the animation should loop indefinitely or not.
+   * When `loop` is a number, this sets the number of loops the animation should run for.
+   * @param loopAttribute - parameter taken from the component's attributes (string | null)
+   * @returns boolen | number
+   */
+  private convertLoopAttribute(loopAttribute: string | null): boolean | number {
+    return loopAttribute === null
+      ? true
+      : isNaN(Number(loopAttribute))
+        ? !(loopAttribute === 'false')
+        : Number(loopAttribute);
+  }
+
+  /**
+   * Converts the direction attribute (which can either be null or a string) to a number.
+   * The direction dictates the play direction of the animation.
+   * A value of `1` represents an animation playing forwards (and is default).
+   * A value of `-1` represents an animation playing backwards.
+   */
+  private convertDirectionAttribute(directionAttribute: number): AnimationDirection {
+    return directionAttribute > 0 ? 1 : -1;
+  }
+
+  private async initializePlayer() {
     if (!this.shadowRoot) {
       return;
     }
@@ -51,11 +84,12 @@ class LottieWeb extends HTMLElement {
     }
 
     if (animationData) {
+      const loop: boolean | number = this.convertLoopAttribute(this.getAttribute('loop'));
       this.player = lottie.loadAnimation({
         container: container,
         renderer: 'svg',
-        loop: !(this.getAttribute('loop') === 'false'),
         autoplay: !(this.getAttribute('autoplay') === 'false'),
+        loop,
         animationData: animationData,
       });
     }
@@ -66,6 +100,122 @@ class LottieWeb extends HTMLElement {
       this.player.destroy();
       this.player = undefined;
     }
+  }
+
+  // Methods
+  play() {
+    this.player?.play();
+  }
+
+  stop() {
+    this.player?.stop();
+  }
+
+  pause() {
+    this.player?.pause();
+  }
+
+  seek(timeSeconds: number) {
+    if (!this.player) return;
+
+    timeSeconds = timeSeconds * 1000; // goTo expects milliseconds
+    if (this.player.isPaused) {
+      this.player.goToAndStop(timeSeconds, false);
+    } else {
+      this.player.goToAndPlay(timeSeconds, false);
+    }
+  }
+
+  seekToFrame(frame: number) {
+    if (!this.player) return;
+
+    if (this.player.isPaused) {
+      this.player.goToAndStop(frame, true);
+    } else {
+      this.player.goToAndPlay(frame, true);
+    }
+  }
+
+  loopBetween(timeSeconds1: number, timeSeconds2: number) {
+    if (!this.player) return;
+    const frame1 = Math.round(this.player.frameRate * timeSeconds1);
+    const frame2 = Math.round(this.player.frameRate * timeSeconds2);
+
+    this.player.playSegments([frame1, frame2]);
+  }
+
+  loopBetweenFrames(frame1: number, frame2: number) {
+    this.player?.playSegments([frame1, frame2]);
+  }
+
+  // Getters/Setters
+
+  get playing() {
+    return this.player ? !this.player.isPaused : false;
+  }
+
+  set playing(play: boolean) {
+    if (!this.player) return;
+
+    if (play) {
+      this.player.play();
+    } else {
+      this.player.pause();
+    }
+  }
+
+  get paused() {
+    return this.player ? this.player.isPaused : true;
+  }
+
+  set paused(paused: boolean) {
+    if (!this.player) return;
+
+    if (paused) {
+      this.player.pause();
+    } else {
+      this.player.play();
+    }
+  }
+
+  get currentTime() {
+    return this.player ? this.player.currentFrame / this.player.frameRate : 0;
+  }
+
+  set currentTime(time) {
+    this.seek(time);
+  }
+
+  get currentFrame() {
+    return this.player ? this.player.currentFrame : 0;
+  }
+
+  set currentFrame(frame) {
+    this.seekToFrame(frame);
+  }
+
+  get duration() {
+    return this.player ? this.player.getDuration(false) : 0;
+  }
+
+  get durationInFrames() {
+    return this.player ? this.player.getDuration(true) : 0;
+  }
+
+  get direction() {
+    return this.player ? this.player.playDirection : 1;
+  }
+
+  set direction(playDirection) {
+    this.player?.setDirection(this.convertDirectionAttribute(playDirection));
+  }
+
+  get speed() {
+    return this.player ? this.player.playSpeed : 1;
+  }
+
+  set speed(speed) {
+    this.player?.setSpeed(speed);
   }
 }
 
