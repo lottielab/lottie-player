@@ -136,6 +136,14 @@ class LottieWeb extends HTMLElement {
     }
   }
 
+  loopBetween(timeSeconds1: number, timeSeconds2: number) {
+    if (!this.player) return;
+    const frame1 = Math.round(this.player.frameRate * timeSeconds1);
+    const frame2 = Math.round(this.player.frameRate * timeSeconds2);
+
+    this.player.playSegments([frame1, frame2]);
+  }
+
   loopBetweenFrames(frame1: number, frame2: number) {
     this.player?.playSegments([frame1, frame2]);
   }

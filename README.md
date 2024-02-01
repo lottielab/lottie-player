@@ -102,8 +102,9 @@ These methods provide controls for playing, stopping, pausing, seeking, and loop
 | `play()` | `void` | Plays the Lottie animation. |
 | `stop()` | `void` | Stops the Lottie animation, resetting the animation to frame 0. |
 | `pause()` | `void` | Pauses the Lottie animation at the current frame. |
-| `seek(time)` | `time: number` | Seeks Lottie animation to a specific point in time, in seconds. |
+| `seek(timeSeconds)` | `timeSeconds: number` | Seeks Lottie animation to a specific point in time, in seconds. |
 | `seekToFrame(frame)` | `frame: number` | Seeks Lottie animation to specified frame. |
+| `loopBetween(timeSeconds1, timeSeconds2)` | `timeSeconds1: number, timeSeconds2: number` | Loops between two points in time (in seconds) within the Lottie animation. |
 | `loopBetweenFrames(frame1, frame2)` | `frame1: number, frame2: number` | Loops between two frames within the Lottie animation. |
 
 Example usage:
