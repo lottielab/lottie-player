@@ -84,7 +84,6 @@ class LottieWeb extends HTMLElement {
     }
 
     if (animationData) {
-      // Loop can either be a bool or a number representing the number of loops the animation should run for.
       const loop: boolean | number = this.convertLoopAttribute(this.getAttribute('loop'));
       this.player = lottie.loadAnimation({
         container: container,
@@ -105,40 +104,40 @@ class LottieWeb extends HTMLElement {
 
   // Methods
   play() {
-    if (this.player) this.player.play();
+    this.player?.play();
   }
 
   stop() {
-    if (this.player) this.player.stop();
+    this.player?.stop();
   }
 
   pause() {
-    if (this.player) this.player.pause();
+    this.player?.pause();
   }
 
-  seek(time: number) {
-    if (this.player) {
-      time = time * 1000; // goTo expects milliseconds
-      if (this.player.isPaused) {
-        this.player.goToAndStop(time, false);
-      } else {
-        this.player.goToAndPlay(time, false);
-      }
+  seek(timeSeconds: number) {
+    if (!this.player) return;
+
+    timeSeconds = timeSeconds * 1000; // goTo expects milliseconds
+    if (this.player.isPaused) {
+      this.player.goToAndStop(timeSeconds, false);
+    } else {
+      this.player.goToAndPlay(timeSeconds, false);
     }
   }
 
   seekToFrame(frame: number) {
-    if (this.player) {
-      if (this.player.isPaused) {
-        this.player.goToAndStop(frame, true);
-      } else {
-        this.player.goToAndPlay(frame, true);
-      }
+    if (!this.player) return;
+
+    if (this.player.isPaused) {
+      this.player.goToAndStop(frame, true);
+    } else {
+      this.player.goToAndPlay(frame, true);
     }
   }
 
   loopBetweenFrames(frame1: number, frame2: number) {
-    if (this.player) this.player.playSegments([frame1, frame2]);
+    this.player?.playSegments([frame1, frame2]);
   }
 
   // Getters/Setters
@@ -148,12 +147,12 @@ class LottieWeb extends HTMLElement {
   }
 
   set playing(play: boolean) {
-    if (this.player) {
-      if (play) {
-        this.player.play();
-      } else {
-        this.player.pause();
-      }
+    if (!this.player) return;
+
+    if (play) {
+      this.player.play();
+    } else {
+      this.player.pause();
     }
   }
 
@@ -162,12 +161,12 @@ class LottieWeb extends HTMLElement {
   }
 
   set paused(paused: boolean) {
-    if (this.player) {
-      if (paused) {
-        this.player.pause();
-      } else {
-        this.player.play();
-      }
+    if (!this.player) return;
+
+    if (paused) {
+      this.player.pause();
+    } else {
+      this.player.play();
     }
   }
 
@@ -176,9 +175,7 @@ class LottieWeb extends HTMLElement {
   }
 
   set currentTime(time) {
-    if (this.player) {
-      this.seek(time);
-    }
+    this.seek(time);
   }
 
   get currentFrame() {
@@ -186,9 +183,7 @@ class LottieWeb extends HTMLElement {
   }
 
   set currentFrame(frame) {
-    if (this.player) {
-      this.seekToFrame(frame);
-    }
+    this.seekToFrame(frame);
   }
 
   get duration() {
@@ -204,9 +199,7 @@ class LottieWeb extends HTMLElement {
   }
 
   set direction(playDirection) {
-    if (this.player) {
-      this.player.setDirection(this.convertDirectionAttribute(playDirection));
-    }
+    this.player?.setDirection(this.convertDirectionAttribute(playDirection));
   }
 
   get speed() {
@@ -214,9 +207,7 @@ class LottieWeb extends HTMLElement {
   }
 
   set speed(speed) {
-    if (this.player) {
-      this.player.setSpeed(speed);
-    }
+    this.player?.setSpeed(speed);
   }
 }
 

@@ -83,14 +83,14 @@ These are attributes that can be set on the `<lottie-player>` component in HTML.
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `src`      | string  | The source path or JSON data for the Lottie animation. |
+| `src`      | string  | The source path or url for the Lottie animation. |
 | `autoplay` | boolean | Whether the animation should autoplay.                 |
 | `loop`     | boolean  \| number | Whether the animation should loop, optionally pass a number to set the number of loops an animation should play. |
 
 Example usage:
 
 ```html
-  <lottie-player src="path/to/file" autoplay=true loop=4 />
+  <lottie-player src="path/to/file" autoplay loop="4" />
 ```
 
 ##### Methods
@@ -147,7 +147,7 @@ For example, assumming we have a Lottie Animation instance named `lottieAnimatio
 
 ```javascript
 // Play the animation
-lottieAnimation.play = true;
+lottieAnimation.playing = true;
 
 // Seek to specific time
 lottieAnimation.currentTime = 3; // Seeks to 3 seconds!
