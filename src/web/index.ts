@@ -1,34 +1,47 @@
-import lottie, {
-  AnimationDirection,
-  AnimationItem,
-} from 'lottie-web/build/player/lottie_lottielab';
+import LottiePlayer, { ILottie } from '../common/player';
 
-class LottieWeb extends HTMLElement {
-  private player?: AnimationItem;
+function warn(message: string) {
+  console.warn(`[@lottielab/lottie-player/web] ${message}`);
+}
+
+class LottieWeb extends HTMLElement implements ILottie {
+  private lottie: LottiePlayer;
 
   static get observedAttributes() {
-    return ['src', 'autoplay', 'loop'];
+    return ['src', 'loop', 'speed', 'direction'];
   }
 
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-  }
-
-  connectedCallback() {
-    this.initializePlayer();
+    this.lottie = new LottiePlayer(this.shadowRoot!);
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    if (name === 'src' && newValue !== oldValue) {
-      this.initializePlayer();
+    if (oldValue === newValue) {
+      return;
     }
 
-    if (name === 'loop' && newValue !== oldValue) {
-      if (!this.shadowRoot || !this.player) {
-        return;
-      }
-      this.player.loop = this.convertLoopAttribute(newValue);
+    switch (name) {
+      case 'src':
+        this.lottie.initialize(newValue, !(this.getAttribute('autoplay') === 'false'));
+        break;
+      case 'loop':
+        this.lottie.loop = this.convertLoopAttribute(newValue);
+        break;
+      case 'direction':
+        this.lottie.direction = this.convertDirectionAttribute(newValue);
+        break;
+      case 'speed':
+        const value = parseFloat(newValue);
+        if (!isNaN(value)) {
+          this.lottie.speed = parseFloat(newValue);
+        } else {
+          warn(`Invalid speed value: ${newValue}`);
+          this.lottie.speed = 1;
+        }
+
+        break;
     }
   }
 
@@ -37,14 +50,33 @@ class LottieWeb extends HTMLElement {
    * When `loop` is true/false it sets whether the animation should loop indefinitely or not.
    * When `loop` is a number, this sets the number of loops the animation should run for.
    * @param loopAttribute - parameter taken from the component's attributes (string | null)
-   * @returns boolen | number
+   * @returns boolean | number
    */
-  private convertLoopAttribute(loopAttribute: string | null): boolean | number {
-    return loopAttribute === null
-      ? true
-      : isNaN(Number(loopAttribute))
-        ? !(loopAttribute === 'false')
-        : Number(loopAttribute);
+  private convertLoopAttribute(loopAttribute: string): boolean | number {
+    switch (loopAttribute) {
+      case 'true':
+      case '':
+        return true;
+      case 'false':
+        return false;
+      default:
+        const num = +loopAttribute;
+        if (isNaN(num)) {
+          warn(`Invalid loop value: ${loopAttribute}`);
+          return true;
+        }
+
+        if (num < 0) {
+          warn(`Invalid loop value (negative): ${loopAttribute}`);
+          return true;
+        }
+
+        if (Math.floor(num) !== num) {
+          warn(`Non-integer loop values are not supported: ${loopAttribute}`);
+        }
+
+        return Math.round(num);
+    }
   }
 
   /**
@@ -53,169 +85,109 @@ class LottieWeb extends HTMLElement {
    * A value of `1` represents an animation playing forwards (and is default).
    * A value of `-1` represents an animation playing backwards.
    */
-  private convertDirectionAttribute(directionAttribute: number): AnimationDirection {
-    return directionAttribute > 0 ? 1 : -1;
-  }
-
-  private async initializePlayer() {
-    if (!this.shadowRoot) {
-      return;
+  private convertDirectionAttribute(directionAttribute: string): 1 | -1 {
+    if (['normal', 'forwards'].includes(directionAttribute)) {
+      return 1;
+    } else if (['reverse', 'backwards'].includes(directionAttribute)) {
+      return -1;
     }
 
-    if (this.player) {
-      this.player.destroy();
-      this.player = undefined;
+    const num = +directionAttribute;
+    if (isNaN(num)) {
+      warn(`Invalid direction value: ${directionAttribute}`);
+      return 1;
     }
 
-    // Clear existing content
-    this.shadowRoot.innerHTML = '';
-
-    const container = document.createElement('div');
-    container.style.width = '100%';
-    container.style.height = '100%';
-    this.shadowRoot.appendChild(container);
-
-    let animationData = null;
-    const src = this.getAttribute('src');
-
-    if (src) {
-      const response = await fetch(src);
-      animationData = await response.json();
-    }
-
-    if (animationData) {
-      const loop: boolean | number = this.convertLoopAttribute(this.getAttribute('loop'));
-      this.player = lottie.loadAnimation({
-        container: container,
-        renderer: 'svg',
-        autoplay: !(this.getAttribute('autoplay') === 'false'),
-        loop,
-        animationData: animationData,
-      });
+    if (num === 1 || num === -1) {
+      return num;
+    } else {
+      warn(`Invalid direction value: ${directionAttribute}`);
+      return 1;
     }
   }
 
   disconnectedCallback() {
-    if (this.player) {
-      this.player.destroy();
-      this.player = undefined;
-    }
+    this.lottie.destroy();
   }
 
   // Methods
   play() {
-    this.player?.play();
+    this.lottie.play();
   }
-
   stop() {
-    this.player?.stop();
+    this.lottie.stop();
   }
-
   pause() {
-    this.player?.pause();
+    this.lottie.pause();
   }
 
   seek(timeSeconds: number) {
-    if (!this.player) return;
-
-    timeSeconds = timeSeconds * 1000; // goTo expects milliseconds
-    if (this.player.isPaused) {
-      this.player.goToAndStop(timeSeconds, false);
-    } else {
-      this.player.goToAndPlay(timeSeconds, false);
-    }
+    this.lottie.seek(timeSeconds);
   }
-
   seekToFrame(frame: number) {
-    if (!this.player) return;
-
-    if (this.player.isPaused) {
-      this.player.goToAndStop(frame, true);
-    } else {
-      this.player.goToAndPlay(frame, true);
-    }
+    this.lottie.seekToFrame(frame);
   }
 
   loopBetween(timeSeconds1: number, timeSeconds2: number) {
-    if (!this.player) return;
-    const frame1 = Math.round(this.player.frameRate * timeSeconds1);
-    const frame2 = Math.round(this.player.frameRate * timeSeconds2);
-
-    this.player.playSegments([frame1, frame2]);
+    this.lottie.loopBetween(timeSeconds1 * 1000, timeSeconds2 * 1000);
   }
-
   loopBetweenFrames(frame1: number, frame2: number) {
-    this.player?.playSegments([frame1, frame2]);
+    this.lottie.loopBetweenFrames(frame1, frame2);
   }
 
   // Getters/Setters
 
-  get playing() {
-    return this.player ? !this.player.isPaused : false;
+  get playing(): boolean {
+    return this.lottie.playing;
   }
-
   set playing(play: boolean) {
-    if (!this.player) return;
-
-    if (play) {
-      this.player.play();
-    } else {
-      this.player.pause();
-    }
+    this.lottie.playing = play;
   }
 
-  get paused() {
-    return this.player ? this.player.isPaused : true;
+  get loop(): boolean | number {
+    return this.lottie.loop;
+  }
+  set loop(loop: boolean | number) {
+    this.lottie.loop = loop;
   }
 
-  set paused(paused: boolean) {
-    if (!this.player) return;
-
-    if (paused) {
-      this.player.pause();
-    } else {
-      this.player.play();
-    }
+  get currentTime(): number {
+    return this.lottie.currentTime;
+  }
+  set currentTime(time: number) {
+    this.lottie.currentTime = time;
   }
 
-  get currentTime() {
-    return this.player ? this.player.currentFrame / this.player.frameRate : 0;
+  get currentFrame(): number {
+    return this.lottie.currentFrame;
+  }
+  set currentFrame(frame: number) {
+    this.lottie.currentFrame = frame;
   }
 
-  set currentTime(time) {
-    this.seek(time);
+  get frameRate(): number {
+    return this.lottie.frameRate;
   }
 
-  get currentFrame() {
-    return this.player ? this.player.currentFrame : 0;
+  get duration(): number {
+    return this.lottie.duration;
+  }
+  get durationInFrames(): number {
+    return this.lottie.durationInFrames;
   }
 
-  set currentFrame(frame) {
-    this.seekToFrame(frame);
+  get direction(): 1 | -1 {
+    return this.lottie.direction;
+  }
+  set direction(direction: 1 | -1) {
+    this.lottie.direction = direction;
   }
 
-  get duration() {
-    return this.player ? this.player.getDuration(false) : 0;
+  get speed(): number {
+    return this.lottie.speed;
   }
-
-  get durationInFrames() {
-    return this.player ? this.player.getDuration(true) : 0;
-  }
-
-  get direction() {
-    return this.player ? this.player.playDirection : 1;
-  }
-
-  set direction(playDirection) {
-    this.player?.setDirection(this.convertDirectionAttribute(playDirection));
-  }
-
-  get speed() {
-    return this.player ? this.player.playSpeed : 1;
-  }
-
-  set speed(speed) {
-    this.player?.setSpeed(speed);
+  set speed(speed: number) {
+    this.lottie.speed = speed;
   }
 }
 
@@ -224,3 +196,4 @@ if (typeof window !== 'undefined' && !window.customElements.get('lottie-player')
 }
 
 export default LottieWeb;
+export { ILottie };

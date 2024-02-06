@@ -1,4 +1,4 @@
-import LottieReact from './react';
+import LottieReact, { ILottie } from './react';
 import LottieWeb from './web';
 
-export { LottieReact, LottieWeb };
+export { LottieReact, ILottie, LottieWeb };
