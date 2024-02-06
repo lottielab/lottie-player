@@ -1,17 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Test Lottie Player (Web Component)</title>
     <style>
-      body, html, lottie-player { margin: 0; padding: 0; overflow: hidden }
-      lottie-player { display: block; width: 100vw; height: 100vh }
+      body,
+      html,
+      lottie-player {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .controls {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        z-index: 1;
+      }
+      .controls,
+      .controls * {
+        font-family: monospace;
+        font-size: 12px;
+        vertical-align: middle;
+      }
+      #ct-progress {
+        width: 300px;
+      }
+      #ct-play-pause {
+        min-width: 75px;
+      }
+      lottie-player {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
     </style>
     <script type="text/javascript" src="../../dist/player-web.min.js"></script>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="controls">
+      <input type="range" id="ct-progress" min="0" max="1" step="0.001" value="0" />
+      <button id="ct-play-pause">Pause</button>
+      <button id="ct-stop">Stop</button>
+      <input type="checkbox" checked id="ct-loop" />
+      <label for="ct-loop">Loop</label> | Speed:
+      <button id="ct-speed-faster">x2</button>
+      <button id="ct-speed-slower">x0.5</button>
+      Direction:
+      <button id="ct-direction-normal">Normal</button>
+      <button id="ct-direction-reverse">Reverse</button>
+    </div>
     <lottie-player src="../lottielab-logo.json"></lottie-player>
-</body>
-</html>
 
+    <script>
+      function lottie() {
+        return document.querySelector('lottie-player');
+      }
+
+      function btn(id, cb) {
+        if (cb) {
+          document.getElementById(id).addEventListener('click', cb);
+        } else {
+          return document.getElementById(id);
+        }
+      }
+
+      function updateProgress() {
+        const time = lottie()?.currentTime ?? 0;
+        const duration = lottie()?.duration ?? 1;
+
+        document.getElementById('ct-progress').value = time / duration;
+        btn('ct-play-pause').textContent = lottie().playing ? 'Pause' : 'Play';
+        requestAnimationFrame(updateProgress);
+      }
+
+      requestAnimationFrame(updateProgress);
+
+      btn('ct-play-pause', () => (lottie().playing = !lottie().playing));
+      btn('ct-stop', () => lottie().stop());
+      document.getElementById('ct-loop').addEventListener('change', function () {
+        lottie().loop = this.checked;
+      });
+      btn('ct-speed-faster', () => (lottie().speed *= 2));
+      btn('ct-speed-slower', () => (lottie().speed /= 2));
+      btn('ct-direction-normal', () => (lottie().direction = 1));
+      btn('ct-direction-reverse', () => (lottie().direction = -1));
+
+      document.getElementById('ct-progress').addEventListener('input', function (e) {
+        const l = lottie();
+        if (!lottie) return;
+        l.currentTime = e.target.value * l.duration;
+      });
+    </script>
+  </body>
+</html>

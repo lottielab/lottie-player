@@ -1,33 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LottieReact } from '../..';
+import { LottieReact, ILottie } from '../..';
 import animation from '../lottielab-logo.json';
 
+type ControlsProps = {
+  playing: boolean;
+  loop: boolean;
+  speed: number;
+  direction: 1 | -1;
+
+  onPlayPause: () => void;
+  onStop: () => void;
+  onLoopChange: (loop: boolean) => void;
+  onSpeedChange: (speed: number) => void;
+  onDirectionChange: (direction: 1 | -1) => void;
+};
+
+function Controls(props: ControlsProps) {
+  return (
+    <div className="controls">
+      {/* Seeking and other actions can be performed by accessing the ILottie ref directly. */}
+      <button onClick={props.onPlayPause}>{props.playing ? 'Pause' : 'Play'}</button>
+      <button onClick={props.onStop}>Stop</button>
+      <input
+        id="ct-loop"
+        type="checkbox"
+        checked={props.loop}
+        onChange={(e) => props.onLoopChange(e.target.checked)}
+      />
+      <label htmlFor="ct-loop">Loop</label> | Speed:
+      <button onClick={() => props.onSpeedChange(props.speed * 2)}>x2</button>
+      <button onClick={() => props.onSpeedChange(props.speed * 0.5)}>x0.5</button>
+      Direction:
+      <button onClick={() => props.onDirectionChange(1)}>Normal</button>
+      <button onClick={() => props.onDirectionChange(-1)}>Reverse</button>
+    </div>
+  );
+}
+
 function App() {
-  const [mode, setMode] = useState<'url' | 'direct'>('url');
+  const [loop, setLoop] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [playing, setPlaying] = useState(false);
+  const lottie = useRef<ILottie | null>(null);
+
   useEffect(() => {
-    let currMode = mode;
-    const interval = setInterval(() => {
-      currMode = currMode === 'url' ? 'direct' : 'url';
-      setMode(currMode);
-      console.log(`Switching to mode: ${currMode}`);
-    }, 5000);
-    return () => clearInterval(interval);
+    let raf: ReturnType<typeof requestAnimationFrame>;
+    function update() {
+      setPlaying(lottie.current?.playing ?? false);
+      raf = requestAnimationFrame(update);
+    }
+    raf = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  if (mode === 'url') {
-    return (
+  return (
+    <div>
+      <Controls
+        playing={playing}
+        loop={loop}
+        speed={speed}
+        direction={direction}
+        onPlayPause={() => {
+          if (!lottie.current) return;
+          lottie.current.playing = !lottie.current.playing;
+        }}
+        onStop={() => lottie.current?.stop()}
+        onLoopChange={setLoop}
+        onSpeedChange={setSpeed}
+        onDirectionChange={setDirection}
+      />
+
       <LottieReact
-        src="../lottielab-logo.json"
-        playing={true}
+        ref={lottie}
+        lottie={animation}
+        loop={loop}
+        speed={speed}
+        direction={direction}
+        autoplay={true}
         style={{ width: '100vw', height: '100vh' }}
       />
-    );
-  } else {
-    return (
-      <LottieReact lottie={animation} playing={true} style={{ width: '100vw', height: '100vh' }} />
-    );
-  }
+    </div>
+  );
 }
 
 const container = document.getElementById('root');
