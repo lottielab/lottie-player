@@ -25,7 +25,7 @@
     "lottielab"
   ],
   "dependencies": {
-    "lottie-web": "github:lottielab/lottie-web#c4ba237b99a590eb200cf8b2ebcdd54d0f9d4309"
+    "lottie-web": "github:lottielab/lottie-web#8d2e42d86e6c1f6a27ea8970f69b76b531c2370c"
   },
   "peerDependencies": {
     "react": ">=16.8.0"
