@@ -1,4 +1,3 @@
 node_modules/
-dist/*
-!dist/player-web.min.js
-playground/react/dist/
+dist/
+playground/**/dist/
