@@ -9,6 +9,7 @@ type ControlsProps = {
   speed: number;
   direction: 1 | -1;
 
+  onOpen: () => void;
   onPlayPause: () => void;
   onStop: () => void;
   onLoopChange: (loop: boolean) => void;
@@ -19,6 +20,7 @@ type ControlsProps = {
 function Controls(props: ControlsProps) {
   return (
     <div className="controls">
+      <button onClick={props.onOpen}>Open...</button>
       {/* Seeking and other actions can be performed by accessing the ILottie ref directly. */}
       <button onClick={props.onPlayPause}>{props.playing ? 'Pause' : 'Play'}</button>
       <button onClick={props.onStop}>Stop</button>
@@ -43,6 +45,7 @@ function App() {
   const [speed, setSpeed] = useState(1);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [playing, setPlaying] = useState(false);
+  const [src, setSrc] = useState<string | null>(null);
   const lottie = useRef<ILottie | null>(null);
 
   useEffect(() => {
@@ -55,6 +58,8 @@ function App() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  const input = src ? { src } : { lottie: animation };
+
   return (
     <div>
       <Controls
@@ -62,6 +67,14 @@ function App() {
         loop={loop}
         speed={speed}
         direction={direction}
+        onOpen={() => {
+          const url = prompt(
+            'Enter Lottie JSON URL (or "default" to use the initial one)',
+            src ?? ''
+          );
+          if (url === 'default') setSrc(null);
+          else if (url) setSrc(url);
+        }}
         onPlayPause={() => {
           if (!lottie.current) return;
           lottie.current.playing = !lottie.current.playing;
@@ -74,7 +87,7 @@ function App() {
 
       <LottieReact
         ref={lottie}
-        lottie={animation}
+        {...input}
         loop={loop}
         speed={speed}
         direction={direction}

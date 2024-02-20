@@ -43,6 +43,7 @@
   </head>
   <body>
     <div class="controls">
+      <button id="ct-open">Open...</button>
       <input type="range" id="ct-progress" min="0" max="1" step="0.001" value="0" />
       <button id="ct-play-pause">Pause</button>
       <button id="ct-stop">Stop</button>
@@ -79,6 +80,15 @@
       }
 
       requestAnimationFrame(updateProgress);
+
+      btn('ct-open', () => {
+        const url = prompt(
+          'Enter Lottie JSON URL (or "default" to use the initial one)',
+          lottie().getAttribute('src')
+        );
+        if (url === 'default') lottie().setAttribute('src', '../lottielab-logo.json');
+        else if (url) lottie().setAttribute('src', url);
+      });
 
       btn('ct-play-pause', () => (lottie().playing = !lottie().playing));
       btn('ct-stop', () => lottie().stop());
