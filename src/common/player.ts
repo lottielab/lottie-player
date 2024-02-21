@@ -5,7 +5,7 @@ import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab'
  * This can be useful for monitoring and logging the various library versions
  * that exist in the wild, to address compatibility issues, for example.
  */
-const X_LOTTIE_PLAYER = '@lottielab/lottie-player 0.2.0';
+const X_LOTTIE_PLAYER = '@lottielab/lottie-player 1.0.3';
 
 /**
  * List of allowed origins for which the X-Lottie-Player header, containing the
