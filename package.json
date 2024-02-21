@@ -1,7 +1,7 @@
 {
   "name": "@lottielab/lottie-player",
   "version": "0.2.0",
-  "description": "Versatile player for Lottie animations based on lottie-web. Supports HTML (via Web Components) and React.",
+  "description": "Versatile Lottie animation player based on lottie-web. Supports HTML (via Web Components) and React.",
   "main": "dist/cjs/bundle.js",
   "module": "dist/esm/bundle.js",
   "types": "dist/types/bundle.d.ts",
