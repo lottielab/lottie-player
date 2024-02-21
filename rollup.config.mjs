@@ -2,6 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
+import sourcemaps from 'rollup-plugin-sourcemaps';
 
 import pkg from './package.json' assert { type: 'json' };
 
@@ -42,11 +43,7 @@ function bundle(what, imports, output) {
     throw new Error('Invalid output');
   }
 
-  const plugins = [resolve(), commonjs(), terser()];
-  /*if (imports === 'browser') {
-    plugins.push(terser());
-  }*/
-
+  const plugins = [sourcemaps(), resolve(), commonjs(), terser()];
   return {
     input,
     external: ['react', 'react-dom'],
