@@ -2,6 +2,8 @@ import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab'
 
 const X_LOTTIE_PLAYER = '@lottielab/lottie-player 0.2.0';
 
+export type LottieData = any;
+
 function warn(message: string) {
   console.warn(`[@lottielab/lottie-player] ${message}`);
 }
@@ -23,10 +25,13 @@ export interface ILottie {
   durationInFrames: number;
   direction: 1 | -1;
   speed: number;
+
+  animation: AnimationItem | undefined;
+  animationData: LottieData | undefined;
 }
 
 class LottiePlayer implements ILottie {
-  protected player?: AnimationItem;
+  protected _animation?: AnimationItem;
   private loadingSrc?: string;
   protected readonly root: Node & InnerHTML;
 
@@ -38,7 +43,7 @@ class LottiePlayer implements ILottie {
   }
 
   private _initWithAnimation(animationData: any, container: HTMLDivElement, autoplay?: boolean) {
-    this.player = lottie.loadAnimation({
+    this._animation = lottie.loadAnimation({
       container,
       renderer: 'svg',
       autoplay,
@@ -110,9 +115,9 @@ class LottiePlayer implements ILottie {
   }
 
   destroy() {
-    if (this.player) {
-      this.player.destroy();
-      this.player = undefined;
+    if (this._animation) {
+      this._animation.destroy();
+      this._animation = undefined;
     }
 
     this.root.innerHTML = '';
@@ -120,19 +125,19 @@ class LottiePlayer implements ILottie {
 
   // Methods
   play() {
-    this.player?.play();
+    this._animation?.play();
   }
 
   stop() {
-    this.player?.stop();
+    this._animation?.stop();
   }
 
   pause() {
-    this.player?.pause();
+    this._animation?.pause();
   }
 
   seek(timeSeconds: number) {
-    if (!this.player) return;
+    if (!this._animation) return;
 
     if (timeSeconds < 0) {
       timeSeconds = 0;
@@ -143,15 +148,15 @@ class LottiePlayer implements ILottie {
 
     timeSeconds *= 1000;
 
-    if (this.player.isPaused) {
-      this.player.goToAndStop(timeSeconds, false);
+    if (this._animation.isPaused) {
+      this._animation.goToAndStop(timeSeconds, false);
     } else {
-      this.player.goToAndPlay(timeSeconds, false);
+      this._animation.goToAndPlay(timeSeconds, false);
     }
   }
 
   seekToFrame(frame: number) {
-    if (!this.player) return;
+    if (!this._animation) return;
 
     if (frame < 0) {
       frame = 0;
@@ -161,32 +166,32 @@ class LottiePlayer implements ILottie {
     }
 
     if (!this.playing) {
-      this.player.goToAndStop(frame, true);
+      this._animation.goToAndStop(frame, true);
     } else {
-      this.player.goToAndPlay(frame, true);
+      this._animation.goToAndPlay(frame, true);
     }
   }
 
   loopBetween(timeSeconds1: number, timeSeconds2: number) {
-    if (!this.player) return;
+    if (!this._animation) return;
     const frame1 = Math.round(this.frameRate * timeSeconds1);
     const frame2 = Math.round(this.frameRate * timeSeconds2);
 
-    this.player.playSegments([frame1, frame2]);
+    this._animation.playSegments([frame1, frame2]);
   }
 
   loopBetweenFrames(frame1: number, frame2: number) {
-    this.player?.playSegments([frame1, frame2]);
+    this._animation?.playSegments([frame1, frame2]);
   }
 
   // Getters/Setters
 
   get playing(): boolean {
-    return this.player ? !this.player.isPaused : false;
+    return this._animation ? !this._animation.isPaused : false;
   }
 
   set playing(play: boolean) {
-    if (!this.player) return;
+    if (!this._animation) return;
 
     if (play) {
       this.play();
@@ -196,17 +201,17 @@ class LottiePlayer implements ILottie {
   }
 
   get loop(): boolean | number {
-    return this.player ? this.player.loop : true;
+    return this._animation ? this._animation.loop : true;
   }
 
   set loop(loop: boolean | number) {
-    if (!this.player) return;
+    if (!this._animation) return;
 
-    this.player.setLoop(loop as any); // lottie-web typings seem to be wrong
+    this._animation.setLoop(loop as any); // lottie-web typings seem to be wrong
   }
 
   get currentTime(): number {
-    return this.player ? this.currentFrame / this.frameRate : 0;
+    return this._animation ? this.currentFrame / this.frameRate : 0;
   }
 
   set currentTime(time: number) {
@@ -214,7 +219,7 @@ class LottiePlayer implements ILottie {
   }
 
   get currentFrame(): number {
-    return this.player ? this.player.currentFrame : 0;
+    return this._animation ? this._animation.currentFrame : 0;
   }
 
   set currentFrame(frame: number) {
@@ -222,31 +227,39 @@ class LottiePlayer implements ILottie {
   }
 
   get frameRate(): number {
-    return this.player ? this.player.frameRate : 0;
+    return this._animation ? this._animation.frameRate : 0;
   }
 
   get duration(): number {
-    return this.player ? this.player.getDuration(false) : 0;
+    return this._animation ? this._animation.getDuration(false) : 0;
   }
 
   get durationInFrames(): number {
-    return this.player ? this.player.getDuration(true) : 0;
+    return this._animation ? this._animation.getDuration(true) : 0;
   }
 
   get direction(): 1 | -1 {
-    return this.player ? (Math.sign(this.player.playDirection) as 1 | -1) : 1;
+    return this._animation ? (Math.sign(this._animation.playDirection) as 1 | -1) : 1;
   }
 
   set direction(playDirection: 1 | -1) {
-    this.player?.setDirection(playDirection);
+    this._animation?.setDirection(playDirection);
   }
 
   get speed(): number {
-    return this.player ? this.player.playSpeed : 1;
+    return this._animation ? this._animation.playSpeed : 1;
   }
 
   set speed(speed: number) {
-    this.player?.setSpeed(speed);
+    this._animation?.setSpeed(speed);
+  }
+
+  get animation(): AnimationItem | undefined {
+    return this._animation;
+  }
+
+  get animationData(): LottieData | undefined {
+    return (this._animation as any)?.animationData;
   }
 }
 

@@ -1,4 +1,5 @@
-import LottiePlayer, { ILottie } from '../common/player';
+import LottiePlayer, { ILottie, LottieData } from '../common/player';
+import { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
 
 function warn(message: string) {
   console.warn(`[@lottielab/lottie-player/web] ${message}`);
@@ -188,6 +189,14 @@ class LottieWeb extends HTMLElement implements ILottie {
   }
   set speed(speed: number) {
     this.lottie.speed = speed;
+  }
+
+  get animation(): AnimationItem | undefined {
+    return this.lottie.animation;
+  }
+
+  get animationData(): LottieData | undefined {
+    return this.lottie.animationData;
   }
 }
 
