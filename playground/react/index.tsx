@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LottieReact, ILottie } from '../..';
+import LottieReact, { ILottie } from '../../src/react';
 import animation from '../lottielab-logo.json';
 
 type ControlsProps = {

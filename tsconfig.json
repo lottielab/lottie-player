@@ -5,13 +5,12 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react",
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "./build",
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true
   },
   "include": ["src", "playground"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "build"]
 }
-
