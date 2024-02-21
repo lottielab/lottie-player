@@ -4,10 +4,6 @@ const X_LOTTIE_PLAYER = '@lottielab/lottie-player 0.2.0';
 
 export type LottieData = any;
 
-function warn(message: string) {
-  console.warn(`[@lottielab/lottie-player] ${message}`);
-}
-
 export interface ILottie {
   play(): void;
   stop(): void;
@@ -22,7 +18,7 @@ export interface ILottie {
   currentFrame: number;
   frameRate: number;
   duration: number;
-  durationInFrames: number;
+  durationFrames: number;
   direction: 1 | -1;
   speed: number;
 
@@ -30,30 +26,45 @@ export interface ILottie {
   animationData: LottieData | undefined;
 }
 
+const EMPTY_LOTTIE = {
+  v: '5.7.5',
+  fr: 100,
+  ip: 0,
+  op: 300,
+  w: 300,
+  h: 225,
+  nm: 'Comp 1',
+  ddd: 0,
+  assets: [],
+  layers: [],
+  markers: [],
+};
+
 class LottiePlayer implements ILottie {
-  protected _animation?: AnimationItem;
+  protected _animation!: AnimationItem;
   private loadingSrc?: string;
   protected readonly root: Node & InnerHTML;
 
   constructor(root: Node & InnerHTML, src?: string | any, autoplay?: boolean) {
     this.root = root;
-    if (src) {
-      this.initialize(src, autoplay);
-    }
+    this.initialize(src, autoplay);
   }
 
   private _initWithAnimation(animationData: any, container: HTMLDivElement, autoplay?: boolean) {
+    const { loop, direction, speed } = this;
     this._animation = lottie.loadAnimation({
       container,
       renderer: 'svg',
       autoplay,
       animationData,
     });
+
+    this.loop = loop;
+    this.direction = direction;
+    this.speed = speed;
   }
 
-  initialize(src: string | any, autoplay?: boolean) {
-    const { direction, loop, speed } = this;
-
+  initialize(src: string | any | undefined, autoplay?: boolean): Promise<void> {
     // Clear existing content
     this.destroy();
 
@@ -62,62 +73,73 @@ class LottiePlayer implements ILottie {
     container.style.height = '100%';
 
     if (typeof src === 'string') {
+      // Load from URL
       if (this.loadingSrc === src) {
-        return;
+        return Promise.resolve();
       }
 
       this.loadingSrc = src;
       const xhr = new XMLHttpRequest();
       xhr.open('GET', src, true);
       xhr.setRequestHeader('X-Lottie-Player', X_LOTTIE_PLAYER);
-      xhr.responseType = 'json';
-      xhr.onload = () => {
-        if (this.loadingSrc !== src) {
-          // Another request has been made in the meantime
-          return;
-        }
 
-        try {
-          if (xhr.status === 200) {
-            if (!xhr.response) {
-              warn(`Failed to load Lottie file ${src}: Empty response or invalid JSON`);
-              return;
+      return new Promise((resolve, reject) => {
+        xhr.onload = () => {
+          if (this.loadingSrc !== src) {
+            // Another request has been made in the meantime
+            return resolve();
+          }
+
+          try {
+            if (xhr.status === 200) {
+              if (!xhr.response) {
+                return reject(new Error(`Failed to load Lottie file ${src}: Empty response`));
+              }
+
+              const lottie = JSON.parse(xhr.response);
+              this._initWithAnimation(lottie, container, autoplay);
+              this.root.innerHTML = '';
+              this.root.appendChild(container);
+              return resolve();
+            } else {
+              let responseText = xhr.responseText;
+              if (responseText.length > 300) {
+                responseText = responseText.slice(0, 300) + '... (truncated)';
+              }
+              return reject(
+                new Error(
+                  `Failed to load Lottie file ${src}: HTTP ${xhr.status} ${xhr.statusText}\nResponse:\n${responseText}`
+                )
+              );
+            }
+          } catch (e: any) {
+            if (e.message) {
+              e.message = `Failed to load Lottie file ${src}: ${e.message}`;
             }
 
-            this._initWithAnimation(xhr.response, container, autoplay);
-            this.loop = loop;
-            this.direction = direction;
-            this.speed = speed;
-
-            this.root.innerHTML = '';
-            this.root.appendChild(container);
-          } else {
-            warn(`Failed to load Lottie file ${src}: HTTP ${xhr.statusText} ${xhr.responseText}`);
+            return reject(e);
+          } finally {
+            this.loadingSrc = undefined;
           }
-        } finally {
+        };
+        xhr.onerror = () => {
           this.loadingSrc = undefined;
-        }
-      };
-      xhr.onerror = () => {
-        warn(`Failed to load Lottie file ${src}: Network error`);
-        this.loadingSrc = undefined;
-      };
-      xhr.send();
+          reject(new Error(`Failed to load Lottie file ${src}: Network error`));
+        };
+        xhr.send();
+      });
     } else {
-      this._initWithAnimation(src, container, autoplay);
+      this._initWithAnimation(src ?? EMPTY_LOTTIE, container, autoplay);
       this.root.innerHTML = '';
       this.root.appendChild(container);
-      this.loop = loop;
-      this.direction = direction;
-      this.speed = speed;
       this.loadingSrc = undefined;
+      return Promise.resolve();
     }
   }
 
   destroy() {
     if (this._animation) {
       this._animation.destroy();
-      this._animation = undefined;
     }
 
     this.root.innerHTML = '';
@@ -160,9 +182,9 @@ class LottiePlayer implements ILottie {
 
     if (frame < 0) {
       frame = 0;
-    } else if (frame >= this.durationInFrames) {
+    } else if (frame >= this.durationFrames) {
       // Last frame is exclusive
-      frame = this.durationInFrames - 1e-6;
+      frame = this.durationFrames - 1e-6;
     }
 
     if (!this.playing) {
@@ -234,7 +256,7 @@ class LottiePlayer implements ILottie {
     return this._animation ? this._animation.getDuration(false) : 0;
   }
 
-  get durationInFrames(): number {
+  get durationFrames(): number {
     return this._animation ? this._animation.getDuration(true) : 0;
   }
 
@@ -254,12 +276,16 @@ class LottiePlayer implements ILottie {
     this._animation?.setSpeed(speed);
   }
 
-  get animation(): AnimationItem | undefined {
+  get animation(): AnimationItem {
     return this._animation;
   }
 
   get animationData(): LottieData | undefined {
-    return (this._animation as any)?.animationData;
+    const data = (this._animation as any)?.animationData;
+    if (data === EMPTY_LOTTIE) {
+      return undefined;
+    }
+    return data;
   }
 }
 

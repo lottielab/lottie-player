@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useCallback, forwardRef } from 'react';
 import LottiePlayer, { ILottie } from '../common/player';
 
+function warn(e: any) {
+  // Create an error object if the input is a string so that the stack trace is preserved
+  console.warn(`[@lottielab/lottie-player/web]`, typeof e === 'string' ? new Error(e) : e);
+}
+
 interface LottiePropsBase {
   autoplay?: boolean;
   loop?: boolean;
@@ -29,7 +34,7 @@ const LottieReact = forwardRef<ILottie, LottieProps>(
     }, []);
 
     useEffect(() => {
-      player.current?.initialize('src' in rest ? rest.src : rest.lottie, autoplay);
+      player.current?.initialize('src' in rest ? rest.src : rest.lottie, autoplay).catch(warn);
       return () => player.current?.destroy();
     }, ['src' in rest ? rest.src : rest.lottie]);
 
@@ -48,7 +53,13 @@ const LottieReact = forwardRef<ILottie, LottieProps>(
       player.current.direction = direction;
     }, [direction]);
 
-    return <div className={'lottie ' + (className ?? '')} style={style} ref={container} />;
+    return (
+      <div
+        className={'lottie' + (className ? ' ' + className : '')}
+        style={style}
+        ref={container}
+      />
+    );
   }
 );
 

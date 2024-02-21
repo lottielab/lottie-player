@@ -1,8 +1,9 @@
 import LottiePlayer, { ILottie, LottieData } from '../common/player';
 import { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
 
-function warn(message: string) {
-  console.warn(`[@lottielab/lottie-player/web] ${message}`);
+function warn(e: any) {
+  // Create an error object if the input is a string so that the stack trace is preserved
+  console.warn(`[@lottielab/lottie-player/web]`, typeof e === 'string' ? new Error(e) : e);
 }
 
 class LottieWeb extends HTMLElement implements ILottie {
@@ -15,7 +16,31 @@ class LottieWeb extends HTMLElement implements ILottie {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.lottie = new LottiePlayer(this.shadowRoot!);
+
+    const style = document.createElement('style');
+    const container = document.createElement('div');
+    container.style.width = '100%';
+    container.style.height = '100%';
+    this.shadowRoot!.appendChild(style);
+    this.shadowRoot!.appendChild(container);
+
+    this.lottie = new LottiePlayer(container);
+    this.updateStyles();
+  }
+
+  private updateStyles() {
+    const [w, h] = this.intrinsicSize;
+    this.shadowRoot!.querySelector('style')!.textContent = `
+      :host { display: inline-block; width: ${w}px; height: ${h}px; }
+    `;
+  }
+
+  private get intrinsicSize() {
+    if (this.lottie.animationData) {
+      return [this.lottie.animationData.w, this.lottie.animationData.h];
+    } else {
+      return [300, 225];
+    }
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -25,7 +50,10 @@ class LottieWeb extends HTMLElement implements ILottie {
 
     switch (name) {
       case 'src':
-        this.lottie.initialize(newValue, !(this.getAttribute('autoplay') === 'false'));
+        this.lottie
+          .initialize(newValue, !(this.getAttribute('autoplay') === 'false'))
+          .catch(warn)
+          .finally(() => this.updateStyles());
         break;
       case 'loop':
         this.lottie.loop = this.convertLoopAttribute(newValue);
@@ -173,8 +201,8 @@ class LottieWeb extends HTMLElement implements ILottie {
   get duration(): number {
     return this.lottie.duration;
   }
-  get durationInFrames(): number {
-    return this.lottie.durationInFrames;
+  get durationFrames(): number {
+    return this.lottie.durationFrames;
   }
 
   get direction(): 1 | -1 {
@@ -191,7 +219,7 @@ class LottieWeb extends HTMLElement implements ILottie {
     this.lottie.speed = speed;
   }
 
-  get animation(): AnimationItem | undefined {
+  get animation(): AnimationItem {
     return this.lottie.animation;
   }
 
