@@ -22,6 +22,16 @@
       "types": "./dist/types/react.d.ts"
     }
   },
+  "typesVersions": {
+    "*": {
+      "web": [
+        "./dist/types/web.d.ts"
+      ],
+      "react": [
+        "./dist/types/react.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "build:ts": "tsc",
     "build:bundle": "rollup -c",
