@@ -29,7 +29,7 @@ yarn add @lottielab/lottie-player
 
 ## 📜 Usage
 
-### 🔵 Web Component (HTML)
+### 🔵 Web Component (HTML, universal)
 
 The easiest way to get started is to import the script directly from the
 Lottielab CDN, preferably inside your `<head>` element:
@@ -41,7 +41,7 @@ Lottielab CDN, preferably inside your `<head>` element:
 Then, to play a Lottie:
 
 ```html
-<lottie-player src="https://example.com/your-lottie.json" autoplay loop>
+<lottie-player src="https://cdn.lottielab.com/l/8ok2qzQDyoFeyf.json" autoplay loop>
 </lottie-player>
 ```
 
@@ -58,28 +58,34 @@ import '@lottielab/lottie-player/web';
 ...and then use the `<lottie-player>` component from anywhere, like in the
 example above.
 
+**Since the player is a web component, it can be used from any HTML content,
+which means you can readily use it even from frameworks for which it doesn't
+provide a custom component, such as Vue, Angular, Svelte, and others.**
+
 ---
 
 The player can also be used programatically like any other HTML element:
 
 ```javascript
-import LottieWeb from '@lottielab/lottie-player/web';
-// or: import { LottieWeb } from '@lottielab/lottie-player';
+import Lottie from '@lottielab/lottie-player/web';
+// or: import { LottieWeb as Lottie } from '@lottielab/lottie-player';
 
-// create the element
-const lottie = new LottieWeb();
+window.addEventListener('load', () => {
+  // create the element
+  const lottie = new Lottie();
 
-// set attributes
-lottie.setAttribute('src', 'path/to/your-animation.json');
-lottie.setAttribute('autoplay', 'false');
+  // set attributes
+  lottie.setAttribute('src', 'path/to/your-animation.json');
+  lottie.setAttribute('autoplay', 'false');
 
-// add to the DOM
-document.body.appendChild(lottie);
+  // add to the DOM
+  document.body.appendChild(lottie);
 
-// full animation API is now available:
-lottie.speed = 1.5;
-lottie.play();
-// and so on...
+  // full animation API is now available:
+  lottie.speed = 1.5;
+  lottie.play();
+  // and so on...
+});
 ```
 
 #### API
@@ -106,9 +112,9 @@ Example usage:
 
 ```html
 <lottie-player
-    src="https://example.com/your-lottie.json"
+    src="https://cdn.lottielab.com/l/8ok2qzQDyoFeyf.json"
     autoplay
-    loop="4"
+    loop="true"
     speed="0.5"
     direction="backwards">
 </lottie-player>
@@ -131,13 +137,15 @@ These methods provide controls for playing, stopping, pausing, seeking, and loop
 Example usage:
 
 ```javascript
-import LottieWeb from '@lottielab/lottie-player/web';
-// or: import { LottieWeb } from '@lottielab/lottie-player';
+// get the reference to an animation from the DOM
+// (it's also possible to create the player programmatically)
+const lottie = document.querySelector('lottie-player#my-lottie');
 
-const lottie = new LottieWeb();
-
-// Seek to 5 seconds into the animation
+// seek to 5 seconds into the animation
 lottie.seek(5);
+
+// pause
+lottie.pause();
 ```
 
 ##### Properties
@@ -160,6 +168,7 @@ These properties can be accessed and modified on the component class to control 
 
 ```javascript
 // get the reference to an animation from the DOM
+// (it's also possible to create the player programmatically)
 const lottie = document.querySelector('lottie-player#my-lottie')
 
 // play the animation
@@ -181,13 +190,13 @@ Import the component:
 
 ```javascript
 import Lottie from '@lottielab/lottie-player/react';
-// or: import { LottieReact } from '@lottielab/lottie-player';
+// or: import { LottieReact as Lottie } from '@lottielab/lottie-player';
 ```
 
 Then use it:
 
 ```javascript
-const MyComponent = () => <Lottie src="https://example.com/your-lottie.json" />;
+const MyComponent = () => <Lottie src="https://cdn.lottielab.com/l/8ok2qzQDyoFeyf.json" />;
 ```
 
 Alternatively, you can provide a deserialized Lottie JSON directly, rather than a
@@ -195,8 +204,8 @@ URL. This can be easier, since it can integrate better with your build pipeline
 and bundler:
 
 ```javascript
-import myAnimation from './path/to/your/animation.json';
 // note: make sure to setup JSON imports in your build pipeline
+import myAnimation from './path/to/your/animation.json';
 
 const MyComponent = () => <Lottie lottie={myAnimation} />;
 ```
@@ -235,9 +244,11 @@ Instead, you can get access to the underlying player instance by passing a ref:
 ```javascript
 import Lottie from '@lottielab/lottie-player/react';
 import myAnimation from './path/to/your/animation.json';
+// For TypeScript, also do:
+// import { ILottie } from '@lottielab/lottie-player/react'
 
 const MyComponent = () => {
-  const lottieRef = useRef(null);
+  const lottieRef = useRef(null); // TypeScript: useRef<ILottie | null>(null)
   return (
     <div>
       <Lottie lottie={myAnimation} ref={lottieRef} autoplay={false} />;
@@ -263,6 +274,16 @@ build`. Changes can be tested using the playground using `npm run playground`,
 which will open the playground in your web browser. Then, click on either the
 `react/` or `web/` directories and you'll be able to test the corresponding
 component.
+
+### Release checklist
+
+1. `npm install`
+2. Bump version in `package.json`
+3. Bump version of `X_LOTTIE_PLAYER` in `src/common/player.ts`
+3. `npm run build`
+4. `npm run playground`, check all of the examples with different Lottie URLs.
+   Verify all controls are working.
+5. `npm publish`
 
 ## License
 
