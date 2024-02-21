@@ -6,11 +6,11 @@ animations exported from [Lottielab](https://lottielab.com).
 ## ✨Features
 
 - **Simple and easy-to-use** API.
-- **Lightweight:** <40KiB compressed (~150KiB minified)
+- **Lightweight:** <50KiB compressed (~160KiB minified)
 - **Web component:** use the player easily within any HTML content
-- **React support:** versatile React component for displaying Lotties
-- **Robust:** under the hood uses lottie-web, the industry-standard Lottie
-  library.
+- **React support:** also provides a separate React Lottie player component
+- **Robust:** uses lottie-web, the industry-standard Lottie library
+- **Secure:** eliminates insecure lottie-web features, such as expressions
 - **Type-safe:** written in TypeScript with strict typings available.
 
 ## ⚙️ Installation
@@ -31,11 +31,11 @@ yarn add @lottielab/lottie-player
 
 ### 🔵 Web Component (HTML)
 
-The easiest way to get started is to import the script via CDN, preferably inside
-your `<head>` element:
+The easiest way to get started is to import the script directly from the
+Lottielab CDN, preferably inside your `<head>` element:
 
 ```html
-<script src="...TODO..."></script>
+<script src="https://cdn.lottielab.com/s/lottie-player@1.x/player-web.min.js"></script>
 ```
 
 Then, to play a Lottie:
@@ -60,24 +60,35 @@ example above.
 
 ---
 
-The player can also be used programatically like any other web component:
+The player can also be used programatically like any other HTML element:
 
 ```javascript
 import LottieWeb from '@lottielab/lottie-player/web';
 // or: import { LottieWeb } from '@lottielab/lottie-player';
 
+// create the element
 const lottie = new LottieWeb();
 
+// set attributes
 lottie.setAttribute('src', 'path/to/your-animation.json');
 lottie.setAttribute('autoplay', 'false');
-document.getElementById('my-animation').appendChild(lottie);
 
+// add to the DOM
+document.body.appendChild(lottie);
+
+// full animation API is now available:
 lottie.speed = 1.5;
 lottie.play();
 // and so on...
 ```
 
 #### API
+
+The animation playback can be controlled in depth using a simple-to-use API.
+Click below to see the full docs.
+
+<details>
+<summary>Full API docs</summary>
 
 ##### HTML Attributes
 
@@ -144,22 +155,25 @@ These properties can be accessed and modified on the component class to control 
 | `loop`     | boolean or number | Whether the animation should loop (true or false). Alternatively, it can be a number to set the number of loops an animation should play before pausing. |
 | `direction` | 1 or -1 | Direction in which the animation is played. A value of `1` plays the animation in a _forwards_ direction, whereas `-1` plays the animation in _reverse_. |
 | `speed` | number | Current speed of the animation. 1 is normal speed; values above 1 are faster and below are slower. For example, 0.5 is twice as slow and 2 is twice as fast.
-
-For example, assumming we have a Lottie Animation instance named `lottieAnimation`:
+| `animation` | `AnimationItem` from `lottie-web` | Returns the underlying lottie-web instance. Note that the exact behavior of the underlying instance **is not covered by the semver guarantee**.
+| `animationData` | Lottie JSON | Returns the actual underlying Lottie JSON.
 
 ```javascript
-// Play the animation
-lottieAnimation.playing = true;
+// get the reference to an animation from the DOM
+const lottie = document.querySelector('lottie-player#my-lottie')
 
-// Seek to specific time
-lottieAnimation.currentTime = 3; // Seeks to 3 seconds!
+// play the animation
+lottie.playing = true;
 
-// Get the total duration in frames
-let animationDuration = lottieAnimation.durationFrames;
+// seek to specific time
+lottie.currentTime = 3; // seeks to 3 seconds
+
+// get the total duration in frames
+let animationDuration = lottie.durationFrames;
 console.log(`Duration in frames: ${animationDuration}`); // Duration in frames: 400
 ```
 
----
+</details>
 
 ### 🔵 React Component
 
@@ -173,7 +187,7 @@ import Lottie from '@lottielab/lottie-player/react';
 Then use it:
 
 ```javascript
-const MyComponent = () => <Lottie src="https://example.com/your-lottie,.json" />;
+const MyComponent = () => <Lottie src="https://example.com/your-lottie.json" />;
 ```
 
 Alternatively, you can provide a deserialized Lottie JSON directly, rather than a
@@ -182,18 +196,41 @@ and bundler:
 
 ```javascript
 import myAnimation from './path/to/your/animation.json';
-// Note: make sure to setup JSON imports in your build pipeline
+// note: make sure to setup JSON imports in your build pipeline
 
 const MyComponent = () => <Lottie lottie={myAnimation} />;
 ```
 
-#### Controlling the animation
+#### API
+
+The component allows some setup via props, and can provide the underlying player
+for deeper control. Click below to see the full docs.
+
+
+<details>
+<summary>Full API docs</summary>
+
+##### Props
+
+These props can be passed to the component to control various aspects of the Lottie animation.
+
+| Name | Type | Description |
+| ---- | ---------- | ----------- |
+| `lottie` | Lottie animation data | Deserialized Lottie JSON of the animation to display. Alternatively, you can pass a URL to fetch the lottie from, see `src` below. |
+| `src` | string | URL from where to load the animation. This can be a relative path, but it will be fetched using an HTTP request, not bundled. See also `lottie` above. |
+| `ref` | React ref | If provided, the ref will be populated with a full player instance capable of controlling the animation. See "Controlling the animation" below. |
+| `autoplay` | boolean | Whether the animation should play as soon as the React component is mounted. |
+| `loop`     | boolean or number | Whether the animation should loop (true or false). Alternatively, pass a number to set the number of loops an animation should play before pausing. |
+| `direction` | 1 or -1 | Direction in which the animation is played. A value of `1` plays the animation in a _forwards_ direction, whereas `-1` plays the animation in _reverse_. |
+| `speed` | number | Current speed of the animation. 1 is normal speed; values above 1 are faster and below are slower. For example, 0.5 is twice as slow and 2 is twice as fast.
+
+##### Controlling the animation
 
 The single-direction data flow enforced by React means that some features, such
 as manually pausing and playing the animation or seeking it, are not readily
-available.
+available, since they would require bi-directional data flow.
 
-You can get access to a full player instance by passing a ref:
+Instead, you can get access to the underlying player instance by passing a ref:
 
 ```javascript
 import Lottie from '@lottielab/lottie-player/react';
@@ -212,24 +249,20 @@ const MyComponent = () => {
 
 The object provided to your ref will conform to the `ILottie` interface, _which
 the web component also implements_. You can refer to the "Properties" and
-"Methods" documentation above.
+"Methods" documentation in the **Web Component** section above.
 
 Note that, using methods and properties of the provided `ILottie`, it's possible
 to override the passed-in props.
 
-#### Available properties
+</details>
 
-These properties can be accessed and modified on the component class to control various aspects of the Lottie animation.
+## Development
 
-| Name | Type | Description |
-| ---- | ---------- | ----------- |
-| `lottie` | Lottie animation data | Deserialized Lottie JSON of the animation to display. Alternatively, you can pass a URL to fetch the lottie from, see `src` below. |
-| `src` | string | URL from where to load the animation. This can be a relative path, but it will be fetched using an HTTP request, not bundled. See also `lottie` above. |
-| `ref` | React ref | If provided, the ref will be populated with a full player instance capable of controlling the animation. See "Controlling the animation" above. |
-| `autoplay` | boolean | Whether the animation should play as soon as the React component is mounted. |
-| `loop`     | boolean or number | Whether the animation should loop (true or false). Alternatively, pass a number to set the number of loops an animation should play before pausing. |
-| `direction` | 1 or -1 | Direction in which the animation is played. A value of `1` plays the animation in a _forwards_ direction, whereas `-1` plays the animation in _reverse_. |
-| `speed` | number | Current speed of the animation. 1 is normal speed; values above 1 are faster and below are slower. For example, 0.5 is twice as slow and 2 is twice as fast.
+After cloning the repo, run `npm install`. To build the web bundle, run `npm run
+build`. Changes can be tested using the playground using `npm run playground`,
+which will open the playground in your web browser. Then, click on either the
+`react/` or `web/` directories and you'll be able to test the corresponding
+component.
 
 ## License
 
