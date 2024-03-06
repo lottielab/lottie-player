@@ -52,6 +52,14 @@
     "animation",
     "lottielab"
   ],
+  "homepage": "https://www.lottielab.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lottielab/lottie-player.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lottielab/lottie-player/issues"
+  },
   "dependencies": {
     "lottie-web": "github:lottielab/lottie-web#8d2e42d86e6c1f6a27ea8970f69b76b531c2370c"
   },

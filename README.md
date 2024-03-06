@@ -283,7 +283,9 @@ component.
 3. `npm run build`
 4. `npm run playground`, check all of the examples with different Lottie URLs.
    Verify all controls are working.
-5. `npm publish`
+5. Create a new git tag: `git tag -a vX.X.X -m "Release X.X.X"` (replace X.X.X
+   with the semver version)
+6. Create a new release: https://github.com/lottielab/lottie-player/releases/new
 
 ## License
 
