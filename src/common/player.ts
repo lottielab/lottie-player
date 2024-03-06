@@ -1,6 +1,24 @@
 import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
 
+/**
+ * Value of the X-Lottie-Player header that is sent with requests to the server.
+ * This can be useful for monitoring and logging the various library versions
+ * that exist in the wild, to address compatibility issues, for example.
+ */
 const X_LOTTIE_PLAYER = '@lottielab/lottie-player 0.2.0';
+
+/**
+ * List of allowed origins for which the X-Lottie-Player header, containing the
+ * library version, is sent with the request.
+ *
+ * Ideally we would simply append this header to all requests, but if the server
+ * doesn't respond with a matching Access-Control-Allow-Origin header, the request
+ * will fail due to CORS. So we instead have a list of origins that are known to
+ * allow this header via CORS.
+ *
+ * PRs to add more origins are welcome.
+ */
+const X_LOTTIE_PLAYER_ORIGIN_WHITELIST = [/^https?:\/\/(.*[^.]\.)?lottielab\.com$/];
 
 export type LottieData = any;
 
@@ -81,7 +99,16 @@ class LottiePlayer implements ILottie {
       this.loadingSrc = src;
       const xhr = new XMLHttpRequest();
       xhr.open('GET', src, true);
-      xhr.setRequestHeader('X-Lottie-Player', X_LOTTIE_PLAYER);
+      try {
+        // Report the library version to the server for logging and monitoring
+        // purposes, but only if the origin is whitelisted. This is to avoid CORS
+        // issues - see X_LOTTIE_PLAYER_ORIGIN_WHITELIST above.
+        if (X_LOTTIE_PLAYER_ORIGIN_WHITELIST.some((re) => new URL(src).origin.match(re))) {
+          xhr.setRequestHeader('X-Lottie-Player', X_LOTTIE_PLAYER);
+        }
+      } catch (e) {
+        // Ignore, since it's a debug/monitoring feature
+      }
 
       return new Promise((resolve, reject) => {
         xhr.onload = () => {
