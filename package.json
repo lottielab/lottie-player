@@ -1,6 +1,6 @@
 {
   "name": "@lottielab/lottie-player",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Versatile Lottie animation player based on lottie-web. Supports HTML (via Web Components) and React.",
   "main": "dist/cjs/bundle.js",
   "module": "dist/esm/bundle.js",
@@ -52,6 +52,13 @@
     "animation",
     "lottielab"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lottielab/lottie-player.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lottielab/lottie-player/issues"
+  },
   "dependencies": {
     "lottie-web": "github:lottielab/lottie-web#8d2e42d86e6c1f6a27ea8970f69b76b531c2370c"
   },
