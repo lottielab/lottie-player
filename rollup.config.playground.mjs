@@ -21,4 +21,21 @@ export default [
       commonjs(),
     ],
   },
+  {
+    input: 'build/playground/interactive/index.js',
+    output: {
+      file: 'playground/interactive/dist/build.min.js',
+      format: 'iife',
+      sourcemap: true
+    },
+    plugins: [
+      resolve(),
+      json(),
+      replace({
+        'process.env.NODE_ENV': JSON.stringify('development'),
+        preventAssignment: true
+      }),
+      commonjs(),
+    ],
+  },
 ];
