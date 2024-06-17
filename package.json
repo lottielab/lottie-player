@@ -61,7 +61,7 @@
     "url": "https://github.com/lottielab/lottie-player/issues"
   },
   "dependencies": {
-    "lottie-web": "github:lottielab/lottie-web#8d2e42d86e6c1f6a27ea8970f69b76b531c2370c"
+    "lottie-web": "git+https://github.com/lottielab/lottie-web.git#8d2e42d86e6c1f6a27ea8970f69b76b531c2370c"
   },
   "peerDependencies": {
     "react": ">=16.8.0"
