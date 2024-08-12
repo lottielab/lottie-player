@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lottielab Interactivity Example</title>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style type="text/css">
+        * {
+            font-family: Inter, sans-serif;
+        }
+
+        .example-picker a {
+            font-size: 24px;
+            padding: 20px 0;
+            font-weight: 600;
+            height: 170px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .example-picker a i {
+            font-size: 38px;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="my-2 container">
+      <h1 class="mt-4"><strong>Examples</strong> | Lottielab Player</h1>
+      <p>
+        The Lottielab Player provides a Web component that can be used in most
+        HTML contexts,  a specialized React component for deeper usage
+        and integration within React applications, and also provides support for
+        Interactive Lotties.
+      </p>
+      <p>
+          Click to view one of the examples below. You can find the code for examples in
+          the <a href="https://github.com/lottielab/lottie-player/tree/master/playground">GitHub repository</a>.
+      </p>
+      <div class="row mt-4 example-picker">
+          <div class="d-grid col-4">
+              <a class="btn btn-primary" href="./web"><i class="fab
+              fa-html5"></i> Web Component</a>
+          </div>
+          <div class="d-grid col-4">
+              <a class="btn btn-primary" href="./react"><i class="fab
+              fa-react"></i> React Component</a>
+          </div>
+          <div class="d-grid col-4">
+              <a class="btn btn-primary" href="./interactive"><i class="fa
+              fa-bolt"></i> Interactivity</a>
+          </div>
+          </div>
+      </div>
+    </div>
+  </body>
+</html>

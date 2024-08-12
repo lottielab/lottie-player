@@ -1,5 +1,8 @@
-import LottiePlayer, { ILottie, LottieData } from '../common/player';
+import type { ILottie, LottieJSON, TimeEvent } from '..';
+import { LottiePlayer } from '../common/player';
 import { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
+import { LottielabInteractivity } from '../common/interactivity';
+import { Listener } from '../common/event';
 
 function warn(e: any) {
   // Create an error object if the input is a string so that the stack trace is preserved
@@ -9,8 +12,14 @@ function warn(e: any) {
 class LottieWeb extends HTMLElement implements ILottie {
   private lottie: LottiePlayer;
 
+  // Load event
+  private loadEvent = new CustomEvent('load', {
+    bubbles: true,
+    cancelable: false,
+  });
+
   static get observedAttributes() {
-    return ['src', 'loop', 'speed', 'direction'];
+    return ['src', 'loop', 'speed', 'direction', 'preserveAspectRatio'];
   }
 
   constructor() {
@@ -50,10 +59,27 @@ class LottieWeb extends HTMLElement implements ILottie {
 
     switch (name) {
       case 'src':
-        this.lottie
-          .initialize(newValue, !(this.getAttribute('autoplay') === 'false'))
-          .catch(warn)
-          .finally(() => this.updateStyles());
+        try {
+          this.lottie
+            .initialize(
+              newValue,
+              !(this.getAttribute('autoplay') === 'false'),
+              this.getAttribute('preserveAspectRatio') ?? undefined
+            )
+            .then(() => this.dispatchEvent(this.loadEvent))
+            .catch((e) => {
+              warn(e);
+              this.dispatchEvent(
+                new CustomEvent('error', { bubbles: true, cancelable: false, detail: e })
+              );
+            })
+            .finally(() => this.updateStyles());
+        } catch (e) {
+          warn(e);
+          this.dispatchEvent(
+            new CustomEvent('error', { bubbles: true, cancelable: false, detail: e })
+          );
+        }
         break;
       case 'loop':
         this.lottie.loop = this.convertLoopAttribute(newValue);
@@ -164,6 +190,43 @@ class LottieWeb extends HTMLElement implements ILottie {
     this.lottie.loopBetweenFrames(frame1, frame2);
   }
 
+  toInteractive() {
+    this.lottie.toInteractive();
+  }
+
+  toPlayback() {
+    this.lottie.toPlayback();
+  }
+
+  /**
+   * Subcribes to one of the supported events.
+   *
+   * 'loop' fires when the animation loops around.
+   * 'finish' fires when the animation reaches the end.
+   * 'time' fires whenever a frame passes, and has a `TimeEvent` argument which
+   * gives information about the passage of time since the last time event.
+   *
+   * If the Lottie is interactive (`.interactivity` is defined), only the 'time'
+   * event works. In that case, use the `interactivity` object to listen to
+   * events pertaining to the interactive Lottie.
+   */
+  on(event: 'time' | 'loop' | 'finish', listener: Listener<any>): void {
+    switch (event) {
+      case 'time':
+        this.lottie.on(event, listener);
+        break;
+
+      case 'loop':
+      case 'finish':
+        this.lottie.on(event, listener);
+    }
+  }
+
+  /** Unsubscribes from one of the supported events. */
+  off(event: 'time' | 'loop' | 'finish', listener: Listener<any>): void {
+    this.lottie.off(event, listener);
+  }
+
   // Getters/Setters
 
   get playing(): boolean {
@@ -223,8 +286,12 @@ class LottieWeb extends HTMLElement implements ILottie {
     return this.lottie.animation;
   }
 
-  get animationData(): LottieData | undefined {
+  get animationData(): LottieJSON | undefined {
     return this.lottie.animationData;
+  }
+
+  get interactivity(): LottielabInteractivity | undefined {
+    return this.lottie.interactivity;
   }
 }
 

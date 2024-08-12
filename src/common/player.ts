@@ -1,266 +1,309 @@
-import lottie, { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
+import type { ILottie, LottieJSON, TimeEvent } from '..';
+import { DrivenLottieRenderer } from './driven-renderer';
+import { PlaybackDriver } from './playback';
+import { LottielabInteractivity, isInteractive } from './interactivity';
+import { EventEmitter, Listener } from './event';
+import { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
 
-/**
- * Value of the X-Lottie-Player header that is sent with requests to the server.
- * This can be useful for monitoring and logging the various library versions
- * that exist in the wild, to address compatibility issues, for example.
- */
-const X_LOTTIE_PLAYER = '@lottielab/lottie-player 1.0.3';
-
-/**
- * List of allowed origins for which the X-Lottie-Player header, containing the
- * library version, is sent with the request.
- *
- * Ideally we would simply append this header to all requests, but if the server
- * doesn't respond with a matching Access-Control-Allow-Origin header, the request
- * will fail due to CORS. So we instead have a list of origins that are known to
- * allow this header via CORS.
- *
- * PRs to add more origins are welcome.
- */
-const X_LOTTIE_PLAYER_ORIGIN_WHITELIST = [/^https?:\/\/(.*[^.]\.)?lottielab\.com$/];
-
-export type LottieData = any;
-
-export interface ILottie {
-  play(): void;
-  stop(): void;
-  pause(): void;
-  seek(timeSeconds: number): void;
-  seekToFrame(frame: number): void;
-  loopBetween(timeSeconds1: number, timeSeconds2: number): void;
-  loopBetweenFrames(frame1: number, frame2: number): void;
-  playing: boolean;
-  loop: boolean | number;
-  currentTime: number;
-  currentFrame: number;
-  frameRate: number;
-  duration: number;
-  durationFrames: number;
+type InteractivePlaybackState = {
   direction: 1 | -1;
   speed: number;
-
-  animation: AnimationItem | undefined;
-  animationData: LottieData | undefined;
-}
-
-const EMPTY_LOTTIE = {
-  v: '5.7.5',
-  fr: 100,
-  ip: 0,
-  op: 300,
-  w: 300,
-  h: 225,
-  nm: 'Comp 1',
-  ddd: 0,
-  assets: [],
-  layers: [],
-  markers: [],
+  playing: boolean;
 };
 
-class LottiePlayer implements ILottie {
-  protected _animation!: AnimationItem;
-  private loadingSrc?: string;
+type PlayerImpl =
+  | { type: 'playback'; driver: PlaybackDriver }
+  | {
+      type: 'interactive';
+      interactivity: LottielabInteractivity;
+      playback: InteractivePlaybackState;
+    };
+
+/**
+ * A base renderer for Lottie animations based on lottie-web. Able to play
+ * ordinary Lottie animations, as well as Lotties with Lottielab Interactivity.
+ */
+export class LottiePlayer implements ILottie {
+  protected readonly _renderer: DrivenLottieRenderer;
   protected readonly root: Node & InnerHTML;
 
-  constructor(root: Node & InnerHTML, src?: string | any, autoplay?: boolean) {
-    this.root = root;
-    this.initialize(src, autoplay);
-  }
+  private _impl: PlayerImpl;
 
-  private _initWithAnimation(animationData: any, container: HTMLDivElement, autoplay?: boolean) {
-    const { loop, direction, speed } = this;
-    this._animation = lottie.loadAnimation({
-      container,
-      renderer: 'svg',
-      autoplay,
-      animationData,
-    });
-
-    this.loop = loop;
-    this.direction = direction;
-    this.speed = speed;
-  }
-
-  initialize(src: string | any | undefined, autoplay?: boolean): Promise<void> {
-    // Clear existing content
-    this.destroy();
-
-    const container = document.createElement('div');
-    container.style.width = '100%';
-    container.style.height = '100%';
-
-    if (typeof src === 'string') {
-      // Load from URL
-      if (this.loadingSrc === src) {
-        return Promise.resolve();
-      }
-
-      this.loadingSrc = src;
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', src, true);
-      try {
-        // Report the library version to the server for logging and monitoring
-        // purposes, but only if the origin is whitelisted. This is to avoid CORS
-        // issues - see X_LOTTIE_PLAYER_ORIGIN_WHITELIST above.
-        if (X_LOTTIE_PLAYER_ORIGIN_WHITELIST.some((re) => new URL(src).origin.match(re))) {
-          xhr.setRequestHeader('X-Lottie-Player', X_LOTTIE_PLAYER);
-        }
-      } catch (e) {
-        // Ignore, since it's a debug/monitoring feature
-      }
-
-      return new Promise((resolve, reject) => {
-        xhr.onload = () => {
-          if (this.loadingSrc !== src) {
-            // Another request has been made in the meantime
-            return resolve();
-          }
-
-          try {
-            if (xhr.status === 200) {
-              if (!xhr.response) {
-                return reject(new Error(`Failed to load Lottie file ${src}: Empty response`));
-              }
-
-              const lottie = JSON.parse(xhr.response);
-              this._initWithAnimation(lottie, container, autoplay);
-              this.root.innerHTML = '';
-              this.root.appendChild(container);
-              return resolve();
-            } else {
-              let responseText = xhr.responseText;
-              if (responseText.length > 300) {
-                responseText = responseText.slice(0, 300) + '... (truncated)';
-              }
-              return reject(
-                new Error(
-                  `Failed to load Lottie file ${src}: HTTP ${xhr.status} ${xhr.statusText}\nResponse:\n${responseText}`
-                )
-              );
-            }
-          } catch (e: any) {
-            if (e.message) {
-              e.message = `Failed to load Lottie file ${src}: ${e.message}`;
-            }
-
-            return reject(e);
-          } finally {
-            this.loadingSrc = undefined;
-          }
-        };
-        xhr.onerror = () => {
-          this.loadingSrc = undefined;
-          reject(new Error(`Failed to load Lottie file ${src}: Network error`));
-        };
-        xhr.send();
-      });
+  private readonly timeEvent = new EventEmitter<TimeEvent>();
+  private readonly timeEventListener = (e: TimeEvent) => {
+    if (this._impl.type === 'playback') {
+      this.timeEvent.emit(e);
     } else {
-      this._initWithAnimation(src ?? EMPTY_LOTTIE, container, autoplay);
-      this.root.innerHTML = '';
-      this.root.appendChild(container);
-      this.loadingSrc = undefined;
-      return Promise.resolve();
+      this.timeEvent.emit({
+        ...e,
+        playhead: this.currentTime,
+      });
     }
+  };
+
+  constructor(
+    root: Node & InnerHTML,
+    src?: string | any,
+    autoplay?: boolean,
+    preserveAspectRatio?: string
+  ) {
+    this.root = root;
+    this._renderer = new DrivenLottieRenderer(root, src, undefined, preserveAspectRatio);
+
+    const playback = new PlaybackDriver();
+    if (autoplay) {
+      playback.play();
+    }
+    this._impl = { type: 'playback', driver: playback };
+    this._renderer.driver = playback;
+    this.initialize(src, autoplay, preserveAspectRatio);
+  }
+
+  initialize(src: string | any, autoplay?: boolean, preserveAspectRatio?: string) {
+    this._renderer.timeEvent.removeListener(this.timeEventListener);
+    return this._renderer.initialize(src, preserveAspectRatio).then(() => {
+      this._renderer.timeEvent.addListener(this.timeEventListener);
+
+      // Sync the impl with the current state of the lottie.
+      //
+      // If we previously had a user-provided interactivity definition, maintain
+      // it.
+      //
+      // Otherwise, if the lottie is interactive, create an interactive driver
+      // for it to enable interactivity.
+      //
+      // If none of the above apply, the Lottie should be an ordinary playback
+      // Lottie. In that case, destroy any existing interactivity (via
+      // .toPlayback()).
+      if (
+        this.interactivity?.hasUserProvidedDefinition() ||
+        isInteractive(this._renderer.animationData)
+      ) {
+        const hadUserProvidedDefinition = this.interactivity?.hasUserProvidedDefinition();
+        const oldDefinition = this.interactivity?.definition;
+        this.destroyImpl();
+        this.createInteractiveImpl();
+
+        if (hadUserProvidedDefinition) {
+          this.interactivity!.definition = oldDefinition!;
+        }
+      } else if (this.interactivity) {
+        this.toPlayback();
+      }
+
+      if (autoplay) {
+        this.play();
+      }
+    });
+  }
+
+  private destroyImpl() {
+    if (this._impl.type === 'interactive') {
+      this._impl.interactivity._destroy();
+    }
+  }
+
+  private createPlaybackImpl() {
+    this._impl = { type: 'playback', driver: new PlaybackDriver() };
+    this._renderer.driver = this._impl.driver;
+    this._updateTimeMultiplier();
+  }
+
+  private createInteractiveImpl() {
+    this._impl = {
+      type: 'interactive',
+      interactivity: new LottielabInteractivity(
+        this.root as HTMLElement,
+        this._renderer.animationData
+      ),
+      playback: {
+        direction: 1,
+        speed: 1,
+        playing: true,
+      },
+    };
+    this._renderer.driver = this._impl.interactivity._getDriver();
+    this._updateTimeMultiplier();
+  }
+
+  toInteractive() {
+    if (this._impl.type === 'interactive') return;
+    this.destroyImpl();
+    this.createInteractiveImpl();
+  }
+
+  toPlayback() {
+    if (this._impl.type === 'playback') return;
+    this.destroyImpl();
+    this.createPlaybackImpl();
   }
 
   destroy() {
-    if (this._animation) {
-      this._animation.destroy();
-    }
-
+    this.destroyImpl();
+    this._renderer.timeEvent.removeListener(this.timeEventListener);
+    this._renderer.destroy();
     this.root.innerHTML = '';
+  }
+
+  get interactivity(): LottielabInteractivity | undefined {
+    return this._impl.type === 'interactive' ? this._impl.interactivity : undefined;
+  }
+
+  private _updateTimeMultiplier() {
+    if (this._impl.type === 'playback') {
+      this._renderer.timeMultiplier = 1.0;
+    } else {
+      if (this._impl.playback.playing) {
+        this._renderer.timeMultiplier = this._impl.playback.speed * this._impl.playback.direction;
+      } else {
+        this._renderer.timeMultiplier = 0;
+      }
+    }
   }
 
   // Methods
   play() {
-    this._animation?.play();
+    if (this._impl.type === 'playback') {
+      this._impl.driver.play();
+    } else {
+      this._impl.playback.playing = true;
+      this._updateTimeMultiplier();
+    }
   }
 
   stop() {
-    this._animation?.stop();
-  }
-
-  pause() {
-    this._animation?.pause();
-  }
-
-  seek(timeSeconds: number) {
-    if (!this._animation) return;
-
-    if (timeSeconds < 0) {
-      timeSeconds = 0;
-    } else if (timeSeconds >= this.duration) {
-      // Last frame is exclusive
-      timeSeconds = this.duration - 1e-6;
-    }
-
-    timeSeconds *= 1000;
-
-    if (this._animation.isPaused) {
-      this._animation.goToAndStop(timeSeconds, false);
-    } else {
-      this._animation.goToAndPlay(timeSeconds, false);
-    }
-  }
-
-  seekToFrame(frame: number) {
-    if (!this._animation) return;
-
-    if (frame < 0) {
-      frame = 0;
-    } else if (frame >= this.durationFrames) {
-      // Last frame is exclusive
-      frame = this.durationFrames - 1e-6;
-    }
-
-    if (!this.playing) {
-      this._animation.goToAndStop(frame, true);
-    } else {
-      this._animation.goToAndPlay(frame, true);
-    }
-  }
-
-  loopBetween(timeSeconds1: number, timeSeconds2: number) {
-    if (!this._animation) return;
-    const frame1 = Math.round(this.frameRate * timeSeconds1);
-    const frame2 = Math.round(this.frameRate * timeSeconds2);
-
-    this._animation.playSegments([frame1, frame2]);
-  }
-
-  loopBetweenFrames(frame1: number, frame2: number) {
-    this._animation?.playSegments([frame1, frame2]);
-  }
-
-  // Getters/Setters
-
-  get playing(): boolean {
-    return this._animation ? !this._animation.isPaused : false;
-  }
-
-  set playing(play: boolean) {
-    if (!this._animation) return;
-
-    if (play) {
-      this.play();
+    if (this._impl.type === 'playback') {
+      this._impl.driver.stop();
     } else {
       this.pause();
     }
   }
 
+  pause() {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.pause();
+    } else {
+      this._impl.playback.playing = false;
+      this._updateTimeMultiplier();
+    }
+  }
+
+  seek(timeSeconds: number) {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.seek(timeSeconds);
+      this._renderer.advanceToNow();
+    } else {
+      console.warn(`[@lottielab/lottie-player] Cannot seek an interactive Lottie`);
+    }
+  }
+
+  seekToFrame(frame: number) {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.seekToFrame(frame);
+      this._renderer.advanceToNow();
+    } else {
+      console.warn(`[@lottielab/lottie-player] Cannot seek an interactive Lottie`);
+    }
+  }
+
+  loopBetween(timeSeconds1: number, timeSeconds2: number) {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.loopBetween(timeSeconds1, timeSeconds2);
+    } else {
+      console.warn(`[@lottielab/lottie-player] Cannot loop an interactive Lottie`);
+    }
+  }
+
+  loopBetweenFrames(frame1: number, frame2: number) {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.loopBetweenFrames(frame1, frame2);
+    } else {
+      console.warn(`[@lottielab/lottie-player] Cannot loop an interactive Lottie`);
+    }
+  }
+
+  /**
+   * Subcribes to one of the supported events.
+   *
+   * 'loop' fires when the animation loops around.
+   * 'finish' fires when the animation reaches the end.
+   * 'time' fires whenever a frame passes, and has a `TimeEvent` argument which
+   * gives information about the passage of time since the last time event.
+   *
+   * If the Lottie is interactive (`.interactivity` is defined), only the 'time'
+   * event works. In that case, use the `interactivity` object to listen to
+   * events pertaining to the interactive Lottie.
+   */
+  on(event: 'time', listener: Listener<TimeEvent>): void;
+  on(event: 'loop' | 'finish', listener: Listener<undefined>): void;
+  on(event: 'time' | 'loop' | 'finish', listener: Listener<any>): void {
+    switch (event) {
+      case 'loop':
+        if (this._impl.type === 'interactive')
+          throw new Error("Cannot listen to 'loop' event on an interactive Lottie");
+        this._impl.driver.loopEvent.addListener(listener);
+        break;
+      case 'finish':
+        if (this._impl.type === 'interactive')
+          throw new Error("Cannot listen to 'finish' event on an interactive Lottie");
+        this._impl.driver.finishEvent.addListener(listener);
+      case 'time':
+        this.timeEvent.addListener(listener);
+        break;
+    }
+  }
+
+  /** Unsubscribes from an event. */
+  off(event: 'time' | 'loop' | 'finish', listener: Listener<any>): void {
+    switch (event) {
+      case 'time':
+        this.timeEvent.removeListener(listener);
+        break;
+      case 'loop':
+        if (this._impl.type === 'interactive') return; // no listeners
+        this._impl.driver.loopEvent.removeListener(listener);
+        break;
+      case 'finish':
+        if (this._impl.type === 'interactive') return; // no listeners
+        this._impl.driver.finishEvent.removeListener(listener);
+        break;
+    }
+  }
+
+  // Getters/Setters
+
+  get playing(): boolean {
+    return this._impl.type === 'playback' ? this._impl.driver.playing : this._impl.playback.playing;
+  }
+
+  set playing(play: boolean) {
+    if (this._impl.type === 'playback') {
+      this._impl.driver.playing = play;
+    } else {
+      this._impl.playback.playing = play;
+      this._updateTimeMultiplier();
+    }
+  }
+
   get loop(): boolean | number {
-    return this._animation ? this._animation.loop : true;
+    return this._impl.type === 'playback' ? this._impl.driver.loop : false;
   }
 
   set loop(loop: boolean | number) {
-    if (!this._animation) return;
-
-    this._animation.setLoop(loop as any); // lottie-web typings seem to be wrong
+    if (this._impl.type === 'playback') {
+      this._impl.driver.loop = loop;
+    } else {
+      console.warn(`[@lottielab/lottie-player] Cannot set loop on an interactive Lottie`);
+    }
   }
 
   get currentTime(): number {
-    return this._animation ? this.currentFrame / this.frameRate : 0;
+    switch (this._impl.type) {
+      case 'playback':
+        return this._impl.driver.currentTime;
+      case 'interactive':
+        return this._impl.interactivity._getDriver().currentTime;
+    }
   }
 
   set currentTime(time: number) {
@@ -268,7 +311,12 @@ class LottiePlayer implements ILottie {
   }
 
   get currentFrame(): number {
-    return this._animation ? this._animation.currentFrame : 0;
+    switch (this._impl.type) {
+      case 'playback':
+        return this._impl.driver.currentFrame;
+      case 'interactive':
+        return this._impl.interactivity._getDriver().currentFrame;
+    }
   }
 
   set currentFrame(frame: number) {
@@ -276,43 +324,57 @@ class LottiePlayer implements ILottie {
   }
 
   get frameRate(): number {
-    return this._animation ? this._animation.frameRate : 0;
+    return this._renderer.frameRate;
   }
 
   get duration(): number {
-    return this._animation ? this._animation.getDuration(false) : 0;
+    return this._renderer.duration;
   }
 
   get durationFrames(): number {
-    return this._animation ? this._animation.getDuration(true) : 0;
+    return this._renderer.durationInFrames;
   }
 
   get direction(): 1 | -1 {
-    return this._animation ? (Math.sign(this._animation.playDirection) as 1 | -1) : 1;
+    if (this._impl.type === 'playback') {
+      return this._impl.driver.direction;
+    } else {
+      return this._impl.playback.direction;
+    }
   }
 
   set direction(playDirection: 1 | -1) {
-    this._animation?.setDirection(playDirection);
+    if (this._impl.type === 'playback') {
+      this._impl.driver.direction = playDirection;
+    } else {
+      this._impl.playback.direction = playDirection;
+      this._updateTimeMultiplier();
+    }
   }
 
   get speed(): number {
-    return this._animation ? this._animation.playSpeed : 1;
+    if (this._impl.type === 'playback') {
+      return this._impl.driver.speed;
+    } else {
+      return this._impl.playback.speed;
+    }
   }
 
   set speed(speed: number) {
-    this._animation?.setSpeed(speed);
+    if (this._impl.type === 'playback') {
+      this._impl.driver.speed = speed;
+    } else {
+      this._impl.playback.speed = speed;
+      this._updateTimeMultiplier();
+    }
   }
 
   get animation(): AnimationItem {
-    return this._animation;
+    return this._renderer.animation;
   }
 
-  get animationData(): LottieData | undefined {
-    const data = (this._animation as any)?.animationData;
-    if (data === EMPTY_LOTTIE) {
-      return undefined;
-    }
-    return data;
+  get animationData(): LottieJSON | undefined {
+    return this._renderer.animationData;
   }
 }
 
