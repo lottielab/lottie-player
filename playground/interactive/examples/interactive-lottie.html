@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Import the player itself -->
+    <script type="text/javascript" src="../../../dist/player-web.min.js"></script>
+  </head>
+  <body>
+    <p>
+      <button onclick="document.querySelector('lottie-player').setAttribute('src', '../../lotties/FavoriteButtonInteractive.json')">Favorite Button</button>
+      <button onclick="document.querySelector('lottie-player').setAttribute('src', '../../lotties/AppleMakeItYoursInteractive.json')"> Apple - Make it yours</button>
+      <button onclick="document.querySelector('lottie-player').setAttribute('src', '../../lotties/EvilCapybaraInteractive.json')">Evil Capybara</button>
+      <button onclick="document.querySelector('lottie-player').setAttribute('src', '../../lotties/BasketballInteractive.json')">Basketball</button>
+      <button onclick="document.querySelector('lottie-player').setAttribute('src', prompt('Enter Lottie URL'))">Open...</button>
+    </p>
+
+    <p>Current state: <strong id="state">unknown</strong></p>
+
+    <!-- Display a fully interactive Lottie. No need for any additional code. -->
+    <lottie-player
+      src="../../lotties/FavoriteButtonInteractive.json"
+      style="margin: 0 auto; background: #ddd; width: 100%; height: 700px"></lottie-player>
+
+    <script>
+      // Example of how to listen to events from the player
+      const lottie = document.querySelector('lottie-player');
+
+      // First we listen on the load event to ensure the player is ready. This is
+      // the only event that is exposed as a DOM event with addEventListener().
+      // All playback and interactivity events should be listened to using the
+      // player.on() method.
+      lottie.addEventListener('load', () => {
+        if (lottie.interactivity) {
+          // We can query the current state directly.
+          document.getElementById('state').innerText = lottie.interactivity.state.name;
+        }
+
+        // Update the display when the state changes.
+        lottie.interactivity.on('transitionend', (event) => {
+          document.getElementById('state').innerText = event.to.name;
+        });
+      })
+    </script>
+  </body>
+</html>
