@@ -173,5 +173,5 @@ const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
   );
 });
 
+export * from '../common-exports';
 export default LottieReact;
-export { ILottie };

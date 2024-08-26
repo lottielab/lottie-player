@@ -1,4 +1,4 @@
-import type { ILottie, LottieJSON, TimeEvent } from '..';
+import type { ILottie, LottieJSON } from '..';
 import { LottiePlayer } from '../common/player';
 import { AnimationItem } from 'lottie-web/build/player/lottie_lottielab';
 import { LottielabInteractivity } from '../common/interactivity';
@@ -299,5 +299,5 @@ if (typeof window !== 'undefined' && !window.customElements.get('lottie-player')
   window.customElements.define('lottie-player', LottieWeb);
 }
 
+export * from '../common-exports';
 export default LottieWeb;
-export { ILottie };
