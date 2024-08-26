@@ -7,7 +7,7 @@ import { EventEmitter } from './event';
  * This can be useful for monitoring and logging the various library versions
  * that exist in the wild, to address compatibility issues, for example.
  */
-const X_LOTTIE_PLAYER = '@lottielab/lottie-player 1.1.0';
+const X_LOTTIE_PLAYER = '@lottielab/lottie-player 1.1.1';
 
 /**
  * List of allowed origins for which the X-Lottie-Player header, containing the
