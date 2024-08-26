@@ -19,6 +19,7 @@ export interface InteractiveEventHandler {
 export class InteractiveEventDispatcher {
   public handler?: InteractiveEventHandler;
   private disposers: (() => void)[] = [];
+  private currentClickableClassNames: (string | 'full')[] = [];
 
   private attachContinuousListeners(enclosingSvgRect: SVGRectElement) {
     const globalMouseMove = (e: MouseEvent) => {
@@ -95,7 +96,10 @@ export class InteractiveEventDispatcher {
     };
 
     element.addEventListener(eventName, listener);
-    this.disposers.push(() => element.removeEventListener(eventName, listener));
+
+    this.disposers.push(() => {
+      element.removeEventListener(eventName, listener);
+    });
   }
 
   constructor(
@@ -155,7 +159,22 @@ export class InteractiveEventDispatcher {
     this.attachContinuousListeners(fullLottieRect);
   }
 
+  setClickableClassNames(classNames: (string | 'full')[]) {
+    const setCursor = (className: string | 'full', cursor: string) => {
+      const element =
+        className === 'full'
+          ? this.container
+          : (this.container.querySelector(`.${className}`) as SVGElement | undefined);
+      if (element) element.style.cursor = cursor;
+    };
+
+    this.currentClickableClassNames.forEach((className) => setCursor(className, 'initial'));
+    this.currentClickableClassNames = classNames;
+    classNames.forEach((className) => setCursor(className, 'pointer'));
+  }
+
   destroy() {
+    this.setClickableClassNames([]);
     this.disposers.forEach((d) => d());
   }
 }

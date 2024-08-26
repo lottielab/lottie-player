@@ -95,10 +95,13 @@ export class LottielabInteractivity implements ILottielabInteractivity {
       this._rootElement,
       this.getObservedClassNames(def)
     );
+    this._dispatcher.setClickableClassNames(this.getClickableClassNames());
     this._dispatcher.handler = this._driver;
 
-    const onTransitionStartEvent = (event: DriverTransitionEvent) =>
+    const onTransitionStartEvent = (event: DriverTransitionEvent) => {
       this._transitionStartEvent.emit(this.translateTransitionEvent(event));
+      this._dispatcher.setClickableClassNames(this.getClickableClassNames());
+    };
     const onTransitionEndEvent = (event: DriverTransitionEvent) =>
       this._transitionEndEvent.emit(this.translateTransitionEvent(event));
 
@@ -295,6 +298,25 @@ export class LottielabInteractivity implements ILottielabInteractivity {
             if (type === 'custom' || !className) return [];
             return [className];
           })
+      ),
+    ];
+  }
+
+  private getClickableClassNames(): (string | 'full')[] {
+    return [
+      ...new Set(
+        Object.keys(this.state.on ?? {}).flatMap((eventName) => {
+          const [type, className] = eventName.split(':');
+          if (!['click', 'mouseDown', 'mouseUp'].includes(type)) {
+            return [];
+          }
+
+          if (!className) {
+            return ['full'];
+          }
+
+          return [className];
+        })
       ),
     ];
   }
