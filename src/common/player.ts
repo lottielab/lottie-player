@@ -53,6 +53,8 @@ export class LottiePlayer implements ILottie {
     const playback = new PlaybackDriver();
     if (autoplay) {
       playback.play();
+    } else {
+      playback.pause();
     }
     this._impl = { type: 'playback', driver: playback };
     this._renderer.driver = playback;
@@ -93,6 +95,8 @@ export class LottiePlayer implements ILottie {
 
       if (autoplay) {
         this.play();
+      } else {
+        this.pause();
       }
     });
   }
