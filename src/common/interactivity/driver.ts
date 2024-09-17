@@ -33,10 +33,17 @@ export function ease(easing: def.BezierEasing, t: number): number {
   return bezier.evaluate(easingToBezier(easing), t).y;
 }
 
+export type MorphingSetup = {
+  other: StateState;
+  strength: number | ((variables: Variables) => number);
+  timeRemap?: 'proportional' | 'wrap' | 'clamp';
+};
+
 type StateState = {
   type: 'state';
   def: def.State;
   playback: StatePlayback;
+  morphing?: MorphingSetup;
   remainingDuration?: number;
 };
 
@@ -94,13 +101,14 @@ function playbackFor(state: def.State): StatePlayback {
 }
 
 function advanceStatePlayback(
-  pb: StatePlayback,
+  state: StateState,
   ls: LottieState,
   elapsed: number,
   clock: number,
   variables: Variables,
   eventsOut?: PlaybackEvent[]
 ) {
+  const pb = state.playback;
   const newVars = {
     ...variables,
     time: clock,
@@ -114,13 +122,18 @@ function advanceStatePlayback(
     pb.driver.speed = pb.speedControl(variables);
   }
 
-  const newState = pb.driver.advance(ls, elapsed, eventsOut);
+  const newLs = pb.driver.advance(ls, elapsed, eventsOut);
   if (pb.playheadControl) {
-    newState.time =
+    newLs.time =
       pb.playheadControl(newVars) * pb.driver.durationOfSegment + (pb.driver.segment?.[0] ?? 0);
   }
 
-  return newState;
+  const morph = calculateMorphForState(state, newLs, variables);
+  if (morph) {
+    newLs.morphs = [morph];
+  }
+
+  return newLs;
 }
 
 function proportionalTimeRemap(
@@ -148,6 +161,43 @@ function clampTimeRemap(time: number, from: [number, number], onto: [number, num
   return Math.min(onto[1], Math.max(onto[0], val));
 }
 
+function calculateMorphForState(
+  state: StateState,
+  ls: LottieState,
+  variables: Variables
+): MorphOperation | undefined {
+  if (!state.morphing) return undefined;
+  const timeRemap = state.def.morphing?.timeRemap ?? 'proportional';
+  let newTime;
+  const currTime = ls.morphs ? ls.morphs[ls.morphs.length - 1].time : ls.time;
+  switch (timeRemap) {
+    case 'proportional':
+      newTime = proportionalTimeRemap(
+        currTime,
+        state.def.segment,
+        state.morphing.other.def.segment
+      );
+      break;
+    case 'wrap':
+      newTime = wrapTimeRemap(currTime, state.def.segment, state.morphing.other.def.segment);
+      break;
+    case 'clamp':
+      newTime = clampTimeRemap(currTime, state.def.segment, state.morphing.other.def.segment);
+      break;
+    default:
+      console.warn(`[@lottielab/lottie-player:interactive] Unknown timeRemap: ${timeRemap}`);
+      return undefined;
+  }
+
+  return {
+    time: newTime,
+    strength:
+      typeof state.morphing.strength === 'number'
+        ? state.morphing.strength
+        : state.morphing.strength(variables),
+  };
+}
+
 function applyTransition(
   ls: LottieState,
   transition: TransitionState,
@@ -158,12 +208,12 @@ function applyTransition(
   remainingMorphs: number = MAX_MORPHS
 ): LottieState {
   let newLs = transition.next
-    ? advanceStatePlayback(transition.next.playback, ls, elapsed, clock, variables)
+    ? advanceStatePlayback(transition.next, ls, elapsed, clock, variables)
     : ls;
   if (transition && transition.def.duration) {
     let prevLs;
     if (transition.prev.type === 'state') {
-      prevLs = advanceStatePlayback(transition.prev.playback, ls, elapsed, clock, variables);
+      prevLs = advanceStatePlayback(transition.prev, ls, elapsed, clock, variables);
     } else {
       prevLs = applyTransition(
         ls,
@@ -187,12 +237,30 @@ function applyTransition(
     }
 
     if (alpha === 1) {
-      newLs = { ...prevLs, morphs: undefined, time: newLs.time };
+      newLs = { ...prevLs, morphs: ls.morphs, time: newLs.time };
     } else {
       if (remainingMorphs > 0) {
         const newTime = newLs.time;
         newLs = { ...prevLs };
         newLs.morphs = (newLs.morphs ?? []).concat([{ time: newTime, strength: alpha }]);
+        if (ls.morphs && ls.morphs.length > 0) {
+          // This used to express (1-a)*prev+a*new, but now we need new=(1-b)*n1+b*n2
+          // This is not expressible in the general case as a composition of
+          // morphs
+          //
+          // In this case, we hack around it by just assuming that the initial
+          // time is the most "important"
+          //
+          // This can be solved in a much more elegant/general way by simply
+          // changing the representation that the morphing driver accepts to be a
+          // list of frames and coefficients rather than a composition of linear
+          // combinations
+          newLs.morphs = [
+            ...ls.morphs,
+            { time: newLs.time, strength: 1.0 - newLs.morphs[0].strength },
+          ];
+          newLs.time = ls.time;
+        }
       } else {
         // Don't create any new morphs, just flatten
         newLs = { ...prevLs, time: alpha > 0.5 ? newLs.time : prevLs.time };
@@ -215,10 +283,6 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
   private clock: number = 0;
 
   private state!: StateState;
-  private morphing?: {
-    other: StateState;
-    strength: number | ((variables: Variables) => number);
-  };
   private transition?: TransitionState;
 
   public readonly transitionStartEvent = new EventEmitter<StateTransitionEvent>();
@@ -235,13 +299,13 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
   }
 
   private setupMorphingForCurrentState(opts?: { force: boolean }) {
-    if (opts?.force) this.morphing = undefined;
+    if (opts?.force) this.state.morphing = undefined;
 
     const sd = this.state.def;
-    if (sd.morphing && !this.morphing) {
+    if (sd.morphing && !this.state.morphing) {
       const otherState = this._definition.states[sd.morphing.otherState];
       if (otherState) {
-        this.morphing = {
+        this.state.morphing = {
           other: {
             type: 'state',
             def: otherState,
@@ -257,8 +321,8 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
           `[@lottielab/lottie-player:interactivity] State '${sd.morphing.otherState}' to morph with does not exist`
         );
       }
-    } else if (!sd.morphing && this.morphing) {
-      this.morphing = undefined;
+    } else if (!sd.morphing && this.state.morphing) {
+      this.state.morphing = undefined;
     }
   }
 
@@ -405,41 +469,6 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
     this.goToState(newState, transition);
   }
 
-  private getMorphs(ls: LottieState): MorphOperation[] | undefined {
-    if (!this.morphing) return ls.morphs;
-    const timeRemap = this.state.def.morphing?.timeRemap ?? 'proportional';
-    let newTime;
-    const currTime = ls.morphs ? ls.morphs[ls.morphs.length - 1].time : ls.time;
-    switch (timeRemap) {
-      case 'proportional':
-        newTime = proportionalTimeRemap(
-          currTime,
-          this.state.def.segment,
-          this.morphing.other.def.segment
-        );
-        break;
-      case 'wrap':
-        newTime = wrapTimeRemap(currTime, this.state.def.segment, this.morphing.other.def.segment);
-        break;
-      case 'clamp':
-        newTime = clampTimeRemap(currTime, this.state.def.segment, this.morphing.other.def.segment);
-        break;
-      default:
-        console.warn(`[@lottielab/lottie-player:interactive] Unknown timeRemap: ${timeRemap}`);
-        return undefined;
-    }
-
-    return (ls.morphs ?? []).concat([
-      {
-        time: newTime,
-        strength:
-          typeof this.morphing.strength === 'number'
-            ? this.morphing.strength
-            : this.morphing.strength(this.variables),
-      },
-    ]);
-  }
-
   private getEffectiveState(t: StateState | TransitionState): StateState | TransitionState {
     if (t.type === 'state') {
       return t;
@@ -481,13 +510,15 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
     let newLs = { ...ls };
     const clock = (this.clock += elapsed);
 
+    this.setupMorphingForCurrentState();
+
     const pbEvents: PlaybackEvent[] = [];
     if (this.state.remainingDuration === undefined) {
       // No predefined duration just advance the playback and handle the finish
       // events below
       newLs = advanceStatePlayback(
-        this.state.playback,
-        ls,
+        this.state,
+        { ...ls, morphs: undefined },
         elapsed,
         clock,
         this.variables,
@@ -498,7 +529,14 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
       if (d > 0) {
         const dt = Math.min(d, elapsed);
         this.state.remainingDuration -= dt;
-        newLs = advanceStatePlayback(this.state.playback, ls, dt, clock, this.variables, pbEvents);
+        newLs = advanceStatePlayback(
+          this.state,
+          { ...ls, morphs: undefined },
+          dt,
+          clock,
+          this.variables,
+          pbEvents
+        );
 
         // Have we finished the full duration?
         // (This will also take into account predefined loops, see enterState())
@@ -515,10 +553,7 @@ export class InteractiveDriver implements LottieDriver, InteractiveEventHandler 
       }
     }
 
-    this.setupMorphingForCurrentState();
-
     newLs = this.applyTransition(newLs, elapsed, clock);
-    newLs.morphs = this.getMorphs(newLs);
     return newLs;
   }
 

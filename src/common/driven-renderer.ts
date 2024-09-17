@@ -69,7 +69,6 @@ export class DrivenLottieRenderer<D extends LottieDriver = LottieDriver> {
   refresh() {
     this.morphing?.detach();
     this.morphing = undefined;
-    this.renderer.renderFrame(this.state.time);
     this.setState(this.state);
   }
 
@@ -96,8 +95,12 @@ export class DrivenLottieRenderer<D extends LottieDriver = LottieDriver> {
 
         this.morphing.ops = newState.morphs;
 
-        if (morphChanged && !timeChanged) {
+        if (morphChanged) {
           // Force render
+          //
+          // This unfortunately needs to happen even if triggered earlier because
+          // of timeChanged, since we need to evaluate the morphs and take into
+          // account the new time
           this.renderer.animation?.renderer?.renderFrame(null);
         }
       }
