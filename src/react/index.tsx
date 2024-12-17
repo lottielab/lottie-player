@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, forwardRef } from 'react';
+import React, { useEffect, useRef, useCallback, forwardRef, useState } from 'react';
 import { LottiePlayer } from '../common/player';
 import { ILottie, TimeEvent, TransitionEvent } from '..';
 
@@ -41,6 +41,7 @@ export type LottieProps = LottiePropsBase &
 
 const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
   const player = useRef<LottiePlayer | null>(null);
+  const [isInitilized, setIsInitilized] = useState(false);
   const container = useCallback((node: HTMLDivElement | null) => {
     if (node) {
       player.current = new LottiePlayer(node);
@@ -56,26 +57,59 @@ const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
 
   const isDriven = 'frame' in props || 'time' in props;
 
-  useEffect(() => {
+  const handleInitialize = useCallback(async function ({
+    player,
+    src,
+    autoplay,
+    preserveAspectRatio,
+    onSuccess,
+    onError,
+  }: {
+    player: LottiePlayer;
+    src: string | object;
+    autoplay?: boolean;
+    preserveAspectRatio?: string;
+    onSuccess?: () => void;
+    onError?: (error: unknown) => void;
+  }) {
     try {
-      const autoplay =
-        'playing' in props && props.playing != undefined
-          ? props.playing
-          : 'autoplay' in props
-            ? props.autoplay
-            : true;
-
-      player.current
-        ?.initialize('src' in props ? props.src : props.lottie, autoplay, props.preserveAspectRatio)
-        .catch((e) => {
-          warn(e);
-          props.onError?.(e);
-        })
-        .then(() => props.onLoad?.());
-    } catch (e) {
-      warn(e);
-      props.onError?.(e);
+      await player.initialize(src, autoplay, preserveAspectRatio);
+      onSuccess?.();
+    } catch (error) {
+      onError?.(error);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!player.current) {
+      return;
+    }
+
+    const autoplay =
+      'playing' in props && props.playing != undefined
+        ? props.playing
+        : 'autoplay' in props
+          ? props.autoplay
+          : true;
+
+    const src = 'src' in props ? props.src : props.lottie;
+
+    const preserveAspectRatio = props.preserveAspectRatio;
+
+    void handleInitialize({
+      player: player.current,
+      src,
+      autoplay,
+      preserveAspectRatio,
+      onSuccess: function () {
+        props.onLoad?.();
+        setIsInitilized(true);
+      },
+      onError: function (error) {
+        warn(error);
+        props.onError?.(error);
+      },
+    });
 
     return () => player.current?.destroy();
   }, ['src' in props ? props.src : props.lottie, props.preserveAspectRatio]);
@@ -148,24 +182,24 @@ const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
   }, [props.onFinish]);
 
   useEffect(() => {
-    if (!props.onTransitionStart) return;
+    if (!props.onTransitionStart || !isInitilized) return;
     function listener(e: TransitionEvent) {
       props.onTransitionStart?.(e);
     }
 
     player.current?.interactivity?.on('transitionstart', listener);
     return () => player.current?.interactivity?.off('transitionstart', listener);
-  }, [props.onTransitionStart]);
+  }, [props.onTransitionStart, isInitilized]);
 
   useEffect(() => {
-    if (!props.onTransitionEnd) return;
+    if (!props.onTransitionEnd || !isInitilized) return;
     function listener(e: TransitionEvent) {
       props.onTransitionEnd?.(e);
     }
 
     player.current?.interactivity?.on('transitionend', listener);
     return () => player.current?.interactivity?.off('transitionend', listener);
-  }, [props.onTransitionEnd]);
+  }, [props.onTransitionEnd, isInitilized]);
 
   const { className, style } = props;
   return (
