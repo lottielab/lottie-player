@@ -41,7 +41,7 @@ export type LottieProps = LottiePropsBase &
 
 const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
   const player = useRef<LottiePlayer | null>(null);
-  const [isInitilized, setIsInitilized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const container = useCallback((node: HTMLDivElement | null) => {
     if (node) {
       player.current = new LottiePlayer(node);
@@ -103,7 +103,7 @@ const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
       preserveAspectRatio,
       onSuccess: function () {
         props.onLoad?.();
-        setIsInitilized(true);
+        setIsInitialized(true);
       },
       onError: function (error) {
         warn(error);
@@ -182,24 +182,24 @@ const LottieReact = forwardRef<ILottie, LottieProps>((props, ref) => {
   }, [props.onFinish]);
 
   useEffect(() => {
-    if (!props.onTransitionStart || !isInitilized) return;
+    if (!props.onTransitionStart || !isInitialized) return;
     function listener(e: TransitionEvent) {
       props.onTransitionStart?.(e);
     }
 
     player.current?.interactivity?.on('transitionstart', listener);
     return () => player.current?.interactivity?.off('transitionstart', listener);
-  }, [props.onTransitionStart, isInitilized]);
+  }, [props.onTransitionStart, isInitialized]);
 
   useEffect(() => {
-    if (!props.onTransitionEnd || !isInitilized) return;
+    if (!props.onTransitionEnd || !isInitialized) return;
     function listener(e: TransitionEvent) {
       props.onTransitionEnd?.(e);
     }
 
     player.current?.interactivity?.on('transitionend', listener);
     return () => player.current?.interactivity?.off('transitionend', listener);
-  }, [props.onTransitionEnd, isInitilized]);
+  }, [props.onTransitionEnd, isInitialized]);
 
   const { className, style } = props;
   return (
