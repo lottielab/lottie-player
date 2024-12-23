@@ -124,6 +124,8 @@ export class DrivenLottieRenderer<D extends LottieDriver = LottieDriver> {
   }
 
   set driver(newDriver: D | undefined) {
+    this.prevClock = undefined;
+
     if (this.animationFrame === undefined && newDriver) {
       this.animationFrame = requestAnimationFrame(this.onFrameBound);
     } else if (this.animationFrame !== undefined && !newDriver) {
